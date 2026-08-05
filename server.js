@@ -957,7 +957,7 @@ app.post('/api/double-check', async (req, res) => {
 
     const queryEscaped = encodeURIComponent(title);
     const cgbQueryEscaped = encodeURIComponent(cleanCgbQuery);
-    resultJson.cgbSearchUrl = `https://www.cgb.fr/recherche?q=${cgbQueryEscaped}`;
+    resultJson.cgbSearchUrl = `https://www.google.com/search?q=site%3Acgb.fr+${cgbQueryEscaped}`;
     resultJson.numistaSearchUrl = `https://fr.numista.com/catalogue/index.php?r=${queryEscaped}`;
 
     res.json(resultJson);
