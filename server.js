@@ -466,7 +466,7 @@ app.post('/api/identify', async (req, res) => {
   } = req.body;
 
   try {
-    const numistaKey = await getSetting('numista_key');
+    const numistaKey = await getSetting('numista_key') || process.env.NUMISTA_API_KEY;
     let candidates = [];
     const weightVal = parseFloat(weight) || 0;
     const diameterVal = parseFloat(diameter) || 0;
