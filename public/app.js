@@ -504,10 +504,10 @@ function renderCandidates() {
     let reverseSrc = '';
 
     if (cand.imageObverse && cand.imageObverse.length > 0 && !cand.imageObverse.includes('no-photo.png')) {
-      obverseSrc = `/api/proxy-image?url=${encodeURIComponent(cand.imageObverse)}`;
+      obverseSrc = cand.imageObverse;
     }
     if (cand.imageReverse && cand.imageReverse.length > 0 && !cand.imageReverse.includes('no-photo.png')) {
-      reverseSrc = `/api/proxy-image?url=${encodeURIComponent(cand.imageReverse)}`;
+      reverseSrc = cand.imageReverse;
     }
 
     const hasObv = obverseSrc.length > 0;
@@ -515,7 +515,6 @@ function renderCandidates() {
 
     let imagesHtml = '';
     if (!hasObv && !hasRev) {
-      // Afficher un joli encadré indiquant l'absence d'images de référence
       imagesHtml = `
         <div style="display: flex; gap: 4px; flex-shrink: 0;">
           <div class="no-ref-photo-box" style="width: 134px; height: 65px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); background: rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px; color: var(--color-text-muted);">
@@ -529,7 +528,7 @@ function renderCandidates() {
         <div style="display: flex; gap: 4px; flex-shrink: 0;">
           <div class="candidate-img" style="width: 65px; height: 65px;" title="Avers de référence">
             ${hasObv ? `
-              <img src="${obverseSrc}" alt="Avers Ref" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <img src="${obverseSrc}" referrerpolicy="no-referrer" alt="Avers Ref" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
               <div class="coin-placeholder" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.5rem; color: rgba(212, 175, 55, 0.3);"><i class="fa-solid fa-coins"></i></div>
             ` : `
               <div class="coin-placeholder" style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.5rem; color: rgba(212, 175, 55, 0.3);"><i class="fa-solid fa-coins"></i></div>
@@ -537,7 +536,7 @@ function renderCandidates() {
           </div>
           <div class="candidate-img" style="width: 65px; height: 65px;" title="Revers de référence">
             ${hasRev ? `
-              <img src="${reverseSrc}" alt="Revers Ref" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <img src="${reverseSrc}" referrerpolicy="no-referrer" alt="Revers Ref" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
               <div class="coin-placeholder" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.5rem; color: rgba(212, 175, 55, 0.3);"><i class="fa-solid fa-coins"></i></div>
             ` : `
               <div class="coin-placeholder" style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.5rem; color: rgba(212, 175, 55, 0.3);"><i class="fa-solid fa-coins"></i></div>
