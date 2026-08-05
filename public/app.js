@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPhysicalInputs();
   initAxisSelector();
   initHistory();
+  restoreDebugPersist();
 
   // Événement d'Analyse Visuelle
   document.getElementById('btn-run-analysis').addEventListener('click', runAiAnalysis);
@@ -38,7 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Bouton Confirmer Sauvegarde dans la modale
   document.getElementById('btn-confirm-save').addEventListener('click', confirmSaveCoin);
 
-
+  // Événement pour la case de verrouillage debug
+  const chkPersist = document.getElementById('chk-persist-debug');
+  if (chkPersist) {
+    chkPersist.addEventListener('change', () => {
+      saveDebugPersist();
+    });
+  }
 
   // Gestion des Fermetures Modales
   document.querySelectorAll('.btn-close-modal').forEach(btn => {
@@ -237,10 +244,9 @@ function updateImageStyle(face) {
 
 function checkAnalysisAvailability() {
   const btn = document.getElementById('btn-run-analysis');
-  const hasImages = state.images.obverse.file && state.images.reverse.file;
-  // Permettre l'analyse même si la clé n'est pas encore enregistrée localement
-  // Le serveur lèvera l'erreur appropriée si elle manque
+  const hasImages = (state.images.obverse.file || state.images.obverse.base64) && (state.images.reverse.file || state.images.reverse.base64);
   btn.disabled = !hasImages;
+  saveDebugPersist();
 }
 
 // ----------------------------------------------------
@@ -254,16 +260,19 @@ function initPhysicalInputs() {
       metalButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.physical.metal = btn.getAttribute('data-value');
+      saveDebugPersist();
     });
   });
 
   // Inputs numériques
   document.getElementById('input-weight').addEventListener('input', (e) => {
     state.physical.weight = parseFloat(e.target.value) || 0;
+    saveDebugPersist();
   });
 
   document.getElementById('input-diameter').addEventListener('input', (e) => {
     state.physical.diameter = parseFloat(e.target.value) || 0;
+    saveDebugPersist();
   });
 }
 
@@ -296,6 +305,7 @@ function initAxisSelector() {
     needle.style.transform = `rotate(${targetAngle}deg)`;
     display.textContent = `${hour}h`;
     state.physical.axis = `${hour}h`;
+    saveDebugPersist();
   });
 }
 
@@ -956,4 +966,89 @@ function showNotification(message, type = 'success') {
     notif.style.opacity = 0;
     setTimeout(() => notif.remove(), 400);
   }, 3500);
+}
+
+// ----------------------------------------------------
+// PERSISTANCE / VERROUILLAGE DEBUG (LOCALSTORAGE)
+// ----------------------------------------------------
+function saveDebugPersist() {
+  const chk = document.getElementById('chk-persist-debug');
+  if (!chk) return;
+  
+  if (!chk.checked) {
+    localStorage.removeItem('debug_persist_enabled');
+    localStorage.removeItem('debug_obverse');
+    localStorage.removeItem('debug_reverse');
+    localStorage.removeItem('debug_weight');
+    localStorage.removeItem('debug_diameter');
+    localStorage.removeItem('debug_metal');
+    localStorage.removeItem('debug_axis');
+    return;
+  }
+  
+  localStorage.setItem('debug_persist_enabled', 'true');
+  localStorage.setItem('debug_obverse', state.images.obverse.base64 || '');
+  localStorage.setItem('debug_reverse', state.images.reverse.base64 || '');
+  localStorage.setItem('debug_weight', document.getElementById('input-weight').value || '');
+  localStorage.setItem('debug_diameter', document.getElementById('input-diameter').value || '');
+  localStorage.setItem('debug_metal', state.physical.metal || 'Non identifié');
+  localStorage.setItem('debug_axis', state.physical.axis || '12h');
+}
+
+function restoreDebugPersist() {
+  const chk = document.getElementById('chk-persist-debug');
+  if (!chk) return;
+  
+  const enabled = localStorage.getItem('debug_persist_enabled') === 'true';
+  chk.checked = enabled;
+  if (!enabled) return;
+  
+  const obverse = localStorage.getItem('debug_obverse');
+  const reverse = localStorage.getItem('debug_reverse');
+  const weightVal = localStorage.getItem('debug_weight');
+  const diameterVal = localStorage.getItem('debug_diameter');
+  const metalVal = localStorage.getItem('debug_metal');
+  const axisVal = localStorage.getItem('debug_axis');
+  
+  if (obverse) {
+    state.images.obverse.base64 = obverse;
+    const img = document.getElementById('img-preview-obverse');
+    img.src = obverse;
+    document.getElementById('zone-obverse').querySelector('.preview-container').classList.remove('hidden');
+    document.getElementById('zone-obverse').querySelector('.upload-prompt').classList.add('hidden');
+  }
+  if (reverse) {
+    state.images.reverse.base64 = reverse;
+    const img = document.getElementById('img-preview-reverse');
+    img.src = reverse;
+    document.getElementById('zone-reverse').querySelector('.preview-container').classList.remove('hidden');
+    document.getElementById('zone-reverse').querySelector('.upload-prompt').classList.add('hidden');
+  }
+  
+  if (weightVal) {
+    document.getElementById('input-weight').value = weightVal;
+    state.physical.weight = parseFloat(weightVal) || 0;
+  }
+  if (diameterVal) {
+    document.getElementById('input-diameter').value = diameterVal;
+    state.physical.diameter = parseFloat(diameterVal) || 0;
+  }
+  if (metalVal) {
+    state.physical.metal = metalVal;
+    document.querySelectorAll('#metal-control .segment-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-value') === metalVal);
+    });
+  }
+  if (axisVal) {
+    state.physical.axis = axisVal;
+    document.getElementById('axis-display-val').textContent = axisVal;
+    const hour = parseInt(axisVal.replace('h', ''));
+    const deg = (hour * 30) % 360;
+    const needle = document.getElementById('axis-needle');
+    if (needle) needle.style.transform = `rotate(${deg}deg)`;
+  }
+  
+  // Forcer l'activation du bouton d'analyse
+  const btn = document.getElementById('btn-run-analysis');
+  if (btn) btn.disabled = false;
 }
