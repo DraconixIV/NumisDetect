@@ -152,8 +152,10 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
   let refMetal = defaultMetal;
   let refUrl = '';
 
+  let refTitle = '';
+
   if (!numistaKey || !title) {
-    return { imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
+    return { title: refTitle, imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
   }
 
   try {
@@ -171,12 +173,14 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
       if (data.types && data.types.length > 0) {
         // Sélectionner le meilleur match par pertinence de titre
         const bestCoin = findBestMatchingType(data.types, title);
+        refTitle = bestCoin.title || '';
         imageObverse = bestCoin.obverse_thumbnail || '';
         imageReverse = bestCoin.reverse_thumbnail || '';
         
         // Charger les caractéristiques physiques complètes via le type détaillé
         const details = await fetchNumistaCoinDetails(bestCoin.id, numistaKey);
         if (details) {
+          refTitle = details.title || refTitle;
           imageObverse = details.obverseImage || imageObverse;
           imageReverse = details.reverseImage || imageReverse;
           if (details.weight) refWeight = details.weight;
@@ -186,14 +190,14 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
         refUrl = `https://fr.numista.com/catalogue/pieces${bestCoin.id}.html`;
       }
     }
-    const result = { imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
+    const result = { title: refTitle, imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
     numistaCache.set(cacheKey, result);
     return result;
   } catch (err) {
     console.error(`Erreur correction Numista pour titre "${title}":`, err);
   }
 
-  return { imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
+  return { title: refTitle, imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
 }
 
 // ----------------------------------------------------
@@ -361,19 +365,19 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
         "estimatedMetal": "Devine le métal d'origine (Bronze, Cuivre, Argent, Billon, Or) selon l'aspect et la patine",
         "suggestedSearchTerms": ["Tableau de 3 ou 4 mots clés pour rechercher cette monnaie dans un catalogue en anglais, ex: ['Diocletian', 'Siscia', 'Hercules', 'Aureus']"],
         "directIdentification": {
-          "title": "Nom exact de la monnaie (ex: '10 Centimes Napoléon III (Tête laurée)')",
-          "issuer": "Pays ou autorité émettrice (ex: 'Empire Français')",
-          "year": "Année ou plage d'années estimée (ex: '1861-1868')",
+          "title": "Nom exact de la monnaie (ex: '2 Francs Semeuse (Argent)')",
+          "issuer": "Pays ou autorité émettrice (ex: 'République Française')",
+          "year": "Année ou plage d'années estimée (ex: '1898-1920')",
           "metal": "Métal (Bronze, Cuivre, Argent, Billon, Or)",
           "referenceWeight": 10.0,
-          "referenceDiameter": 30.0,
+          "referenceDiameter": 27.0,
           "referenceAxis": "6h",
           "description": "Description succincte de l'avers et du revers",
-          "referenceUrl": "Lien URL théorique vers la fiche Numista ou CGB de cette pièce s'il existe (ex: 'https://fr.numista.com/catalogue/pieces320.html' ou 'https://www.cgb.fr/...')"
+          "referenceUrl": "Lien URL théorique vers la fiche Numista ou CGB de cette pièce s'il existe (ex: 'https://fr.numista.com/catalogue/pieces1120.html' ou 'https://www.cgb.fr/...')"
         },
         "doubleCheckCandidates": [
           {
-            "title": "Nom de la monnaie similaire pour double-check (ex: '5 Centimes Napoléon III' ou une variante de millésime/atelier)",
+            "title": "Nom de la monnaie similaire pour double-check (ex: '1 Franc Semeuse' ou une variante de millésime/atelier)",
             "issuer": "Émetteur",
             "year": "Année ou période",
             "metal": "Métal",
@@ -481,9 +485,11 @@ app.post('/api/identify', async (req, res) => {
       let refUrl = directIdentification.referenceUrl || '';
 
       // Correction prioritaire via recherche textuelle exacte
+      let displayTitle = directIdentification.title;
       if (numistaKey && directIdentification.title) {
         const corrected = await correctCoinViaNumista(directIdentification.title, numistaKey, refWeight, refDiameter, refMetal);
         if (corrected.imageObverse || corrected.imageReverse) {
+          if (corrected.title) displayTitle = corrected.title;
           imageObverse = corrected.imageObverse;
           imageReverse = corrected.imageReverse;
           refWeight = corrected.refWeight;
@@ -499,6 +505,7 @@ app.post('/api/identify', async (req, res) => {
         if (numistaId && numistaKey) {
           const details = await fetchNumistaCoinDetails(numistaId, numistaKey);
           if (details) {
+            if (details.title) displayTitle = details.title;
             imageObverse = details.obverseImage;
             imageReverse = details.reverseImage;
             if (details.weight) refWeight = details.weight;
@@ -510,7 +517,7 @@ app.post('/api/identify', async (req, res) => {
 
       candidates.push({
         id: 'ai-direct',
-        title: directIdentification.title,
+        title: displayTitle,
         issuer: directIdentification.issuer || "Inconnu",
         year: directIdentification.year || "Inconnue",
         metal: refMetal,
@@ -537,10 +544,12 @@ app.post('/api/identify', async (req, res) => {
           let refMetal = cand.metal || metal || "Bronze";
           let refUrl = cand.referenceUrl || '';
 
+          let displayTitle = cand.title;
           // Correction prioritaire via recherche textuelle exacte
           if (numistaKey && cand.title) {
             const corrected = await correctCoinViaNumista(cand.title, numistaKey, refWeight, refDiameter, refMetal);
             if (corrected.imageObverse || corrected.imageReverse) {
+              if (corrected.title) displayTitle = corrected.title;
               imageObverse = corrected.imageObverse;
               imageReverse = corrected.imageReverse;
               refWeight = corrected.refWeight;
@@ -556,6 +565,7 @@ app.post('/api/identify', async (req, res) => {
             if (numistaId && numistaKey) {
               const details = await fetchNumistaCoinDetails(numistaId, numistaKey);
               if (details) {
+                if (details.title) displayTitle = details.title;
                 imageObverse = details.obverseImage;
                 imageReverse = details.reverseImage;
                 if (details.weight) refWeight = details.weight;
@@ -567,7 +577,7 @@ app.post('/api/identify', async (req, res) => {
 
           candidates.push({
             id: `ai-doublecheck-${idx}`,
-            title: cand.title,
+            title: displayTitle,
             issuer: cand.issuer || "Inconnu",
             year: cand.year || "Inconnue",
             metal: refMetal,
