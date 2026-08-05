@@ -516,6 +516,13 @@ function renderCandidates() {
 
   resultsCount.textContent = `${state.candidates.length} correspondance${state.candidates.length > 1 ? 's' : ''}`;
 
+  let alternativesContainer = null;
+  if (state.candidates.length > 1) {
+    alternativesContainer = document.createElement('div');
+    alternativesContainer.id = 'alternatives-container';
+    alternativesContainer.style.transition = 'all 0.3s ease';
+  }
+
   state.candidates.forEach((cand, index) => {
     const scoreClass = cand.matchScore >= 80 ? 'high-match' : '';
     const isBestMatch = index === 0;
@@ -640,15 +647,59 @@ function renderCandidates() {
       </div>
     `;
 
-    candidatesList.appendChild(card);
+    if (isBestMatch) {
+      candidatesList.appendChild(card);
+    } else if (alternativesContainer) {
+      alternativesContainer.appendChild(card);
+    }
 
     if (isBestMatch && state.candidates.length > 1) {
       const divider = document.createElement('div');
       divider.className = 'section-divider-title';
-      divider.innerHTML = '<i class="fa-solid fa-list-check"></i> Alternatives et comparatifs';
+      divider.style.cursor = 'pointer';
+      divider.style.userSelect = 'none';
+      divider.style.display = 'flex';
+      divider.style.justifyContent = 'space-between';
+      divider.style.alignItems = 'center';
+      divider.style.padding = '10px 14px';
+      divider.style.background = 'rgba(255, 255, 255, 0.03)';
+      divider.style.borderRadius = '6px';
+      divider.style.border = '1px solid rgba(255, 255, 255, 0.05)';
+      divider.style.marginTop = '20px';
+      divider.style.transition = 'all 0.3s ease';
+
+      divider.innerHTML = `
+        <span><i class="fa-solid fa-list-check"></i> Alternatives et comparatifs</span>
+        <i class="fa-solid fa-chevron-down toggle-icon" style="transition: transform 0.3s ease;"></i>
+      `;
       candidatesList.appendChild(divider);
+
+      divider.addEventListener('mouseenter', () => {
+        divider.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+        divider.style.color = 'var(--color-gold)';
+      });
+      divider.addEventListener('mouseleave', () => {
+        divider.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+        divider.style.color = '';
+      });
+
+      divider.addEventListener('click', () => {
+        const collapsed = alternativesContainer.classList.toggle('hidden');
+        const icon = divider.querySelector('.toggle-icon');
+        if (collapsed) {
+          icon.style.transform = 'rotate(-90deg)';
+          divider.style.background = 'rgba(255, 255, 255, 0.01)';
+        } else {
+          icon.style.transform = 'rotate(0deg)';
+          divider.style.background = 'rgba(255, 255, 255, 0.03)';
+        }
+      });
     }
   });
+
+  if (alternativesContainer) {
+    candidatesList.appendChild(alternativesContainer);
+  }
 
   // Associer l'événement de sauvegarde
   document.querySelectorAll('.btn-save-candidate').forEach(btn => {
