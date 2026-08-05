@@ -547,15 +547,17 @@ function renderCandidates() {
     }
 
     card.innerHTML = `
-      <span class="score-badge">${cand.matchScore}% Match</span>
       ${imagesHtml}
       <div class="candidate-details">
-        <div>
-          ${isBestMatch ? `
-            <div class="best-match-tag">
-              <i class="fa-solid fa-trophy"></i> Meilleure Correspondance
-            </div>
-          ` : ''}
+        <div style="width: 100%;">
+          <div class="candidate-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; width: 100%;">
+            ${isBestMatch ? `
+              <div class="best-match-tag" style="margin-bottom: 0;">
+                <i class="fa-solid fa-trophy"></i> Meilleure Correspondance
+              </div>
+            ` : '<div></div>'}
+            <span class="score-badge" style="position: static;">${cand.matchScore}% Match</span>
+          </div>
           <h3 class="candidate-title">${cand.title}</h3>
           <div class="candidate-subtitle">${cand.issuer || 'Émetteur inconnu'} (${cand.year || 'Date inconnue'})</div>
           
