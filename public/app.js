@@ -219,20 +219,46 @@ function handleFileSelect(face, file) {
 
   const reader = new FileReader();
   reader.onload = (e) => {
-    state.images[face].base64 = e.target.result;
-    const imgPreview = document.getElementById(`img-preview-${face}`);
-    imgPreview.src = e.target.result;
-    
-    const zone = document.getElementById(`zone-${face}`);
-    const previewContainer = zone.querySelector('.preview-container');
-    previewContainer.classList.remove('hidden');
-    previewContainer.classList.remove('enhanced');
-    
-    const btnFilter = zone.querySelector('.btn-filter');
-    btnFilter.style.color = '#fff';
-    
-    updateImageStyle(face);
-    checkAnalysisAvailability();
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      const maxDim = 600;
+      let width = tempImg.width;
+      let height = tempImg.height;
+      
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(tempImg, 0, 0, width, height);
+      
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      
+      state.images[face].base64 = compressedDataUrl;
+      const imgPreview = document.getElementById(`img-preview-${face}`);
+      imgPreview.src = compressedDataUrl;
+      
+      const zone = document.getElementById(`zone-${face}`);
+      const previewContainer = zone.querySelector('.preview-container');
+      previewContainer.classList.remove('hidden');
+      previewContainer.classList.remove('enhanced');
+      
+      const btnFilter = zone.querySelector('.btn-filter');
+      btnFilter.style.color = '#fff';
+      
+      updateImageStyle(face);
+      checkAnalysisAvailability();
+    };
+    tempImg.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
