@@ -211,7 +211,7 @@ app.get('/api/settings/:key', async (req, res) => {
 app.post('/api/settings', async (req, res) => {
   const { key, value } = req.body;
   try {
-    await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+    await db.run('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value', [key, value]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).send(err.message);
