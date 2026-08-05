@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NumisDetect - Identification Intelligente de Monnaies</title>
+  <!-- Google Fonts: Outfit (modern geometric sans-serif) & Cinzel (serif style for headers) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Fond animé avec des orbes lumineux (ambiance premium) -->
+  <div class="bg-glow">
+    <div class="glow-orb orb-gold"></div>
+    <div class="glow-orb orb-green"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <i class="fa-solid fa-coins gold-text animate-pulse"></i>
+        <h1>NumisDetect</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-show-history" class="btn btn-secondary">
+          <i class="fa-solid fa-folder-open"></i> Ma Collection
+        </button>
+        <button id="btn-show-settings" class="btn btn-icon">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- Section Configuration (Modale intégrée ou tiroir) -->
+      <section id="settings-panel" class="settings-drawer hidden">
+        <div class="drawer-header">
+          <h3><i class="fa-solid fa-sliders"></i> Configurations</h3>
+          <button id="btn-close-settings" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="drawer-body">
+          <div class="input-group">
+            <label for="input-mistral-key">Clé API Mistral (Alternative gratuite en France)</label>
+            <div class="input-wrapper">
+              <input type="password" id="input-mistral-key" placeholder="Entrez votre clé Mistral...">
+              <button class="btn-toggle-pwd"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <small class="helper-text">
+              <a href="https://console.mistral.ai/" target="_blank" rel="noopener">Créez une clé gratuite sur Mistral AI (Pixtral 12B) <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+            </small>
+          </div>
+          <div class="input-group">
+            <label for="input-numista-key">Clé API Numista</label>
+            <div class="input-wrapper">
+              <input type="password" id="input-numista-key" placeholder="Numista-API-Key...">
+              <button class="btn-toggle-pwd"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <small class="helper-text">
+              <a href="https://fr.numista.com/api/doc/index.php" target="_blank" rel="noopener">Créez votre clé sur Numista <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+            </small>
+          </div>
+          <button id="btn-save-settings" class="btn btn-primary btn-block">Enregistrer les paramètres</button>
+        </div>
+      </section>
+
+      <!-- Panneau Principal d'Identification -->
+      <section id="identification-panel" class="panel">
+        <div class="grid-layout">
+          <!-- Col GAUCHE : Uploads & Caractéristiques -->
+          <div class="col-left">
+            <div class="card glass-card">
+              <div class="card-header">
+                <h2><span class="step-badge">1</span> Photos de la Monnaie</h2>
+              </div>
+              <div class="card-body">
+                <div class="upload-zones">
+                  <!-- Avers -->
+                  <div class="upload-box" id="zone-obverse">
+                    <input type="file" id="file-obverse" accept="image/*" class="file-input">
+                    <div class="upload-prompt">
+                      <i class="fa-solid fa-image-portrait"></i>
+                      <span>AVERS (Face)</span>
+                      <small>Glissez ou cliquez</small>
+                    </div>
+                    <div class="preview-container hidden">
+                      <img id="img-preview-obverse" src="" alt="Avers Preview">
+                      <div class="img-controls">
+                        <button class="btn-img-action btn-rotate" data-target="obverse"><i class="fa-solid fa-rotate-right"></i></button>
+                        <button class="btn-img-action btn-filter" data-target="obverse"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Revers -->
+                  <div class="upload-box" id="zone-reverse">
+                    <input type="file" id="file-reverse" accept="image/*" class="file-input">
+                    <div class="upload-prompt">
+                      <i class="fa-solid fa-crown"></i>
+                      <span>REVERS (Pile)</span>
+                      <small>Glissez ou cliquez</small>
+                    </div>
+                    <div class="preview-container hidden">
+                      <img id="img-preview-reverse" src="" alt="Revers Preview">
+                      <div class="img-controls">
+                        <button class="btn-img-action btn-rotate" data-target="reverse"><i class="fa-solid fa-rotate-right"></i></button>
+                        <button class="btn-img-action btn-filter" data-target="reverse"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card glass-card margin-top">
+              <div class="card-header">
+                <h2><span class="step-badge">2</span> Caractéristiques Physiques</h2>
+              </div>
+              <div class="card-body">
+                <div class="physical-inputs">
+                  <!-- Métal -->
+                  <div class="input-group">
+                    <label>Métal / Composition</label>
+                    <div class="segmented-control" id="metal-control">
+                      <button class="segment-btn active" data-value="Non identifié">Non identifié</button>
+                      <button class="segment-btn" data-value="Bronze">Bronze</button>
+                      <button class="segment-btn" data-value="Copper">Cuivre</button>
+                      <button class="segment-btn" data-value="Silver">Argent</button>
+                      <button class="segment-btn" data-value="Billon">Billon</button>
+                      <button class="segment-btn" data-value="Gold">Or</button>
+                    </div>
+                  </div>
+
+                  <div class="row-inputs">
+                    <!-- Poids -->
+                    <div class="input-group flex-1">
+                      <label for="input-weight">Poids (g)</label>
+                      <div class="input-number-wrapper">
+                        <input type="number" id="input-weight" step="0.01" min="0.1" max="100" placeholder="ex: 3.12">
+                        <span class="unit">g</span>
+                      </div>
+                    </div>
+                    <!-- Diamètre -->
+                    <div class="input-group flex-1">
+                      <label for="input-diameter">Diamètre (mm)</label>
+                      <div class="input-number-wrapper">
+                        <input type="number" id="input-diameter" step="0.5" min="5" max="100" placeholder="ex: 19">
+                        <span class="unit">mm</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Axe / Orientation -->
+                  <div class="input-group">
+                    <label>Axe / Orientation (heures)</label>
+                    <div class="axis-selector-container">
+                      <div class="axis-wheel" id="axis-wheel">
+                        <div class="axis-needle" id="axis-needle"></div>
+                        <!-- Petits repères d'heures -->
+                        <span class="hour-mark h12">12</span>
+                        <span class="hour-mark h3">3</span>
+                        <span class="hour-mark h6">6</span>
+                        <span class="hour-mark h9">9</span>
+                      </div>
+                      <div class="axis-value">
+                        <span id="axis-display-val">12h</span>
+                        <small class="helper-text">Cliquez sur le cadran pour orienter la face par rapport au revers</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button id="btn-run-analysis" class="btn btn-primary btn-block margin-top-lg" disabled>
+                  <i class="fa-solid fa-magnifying-glass-sparkles"></i> Lancer l'analyse visuelle IA
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col DROITE : Analyse IA & Résultats -->
+          <div class="col-right">
+            <!-- Loader d'analyse -->
+            <div id="analysis-loader" class="card glass-card loader-card hidden">
+              <div class="loader-content">
+                <div class="coin-spinner">
+                  <div class="spinner-inner"></div>
+                </div>
+                <h3>L'IA déchiffre votre monnaie...</h3>
+                <p>Lecture des légendes usées et recherche d'indices iconographiques.</p>
+              </div>
+            </div>
+
+            <!-- Étape 3 : Validation des données extraites par l'IA -->
+            <div id="ai-results-card" class="card glass-card hidden">
+              <div class="card-header">
+                <h2><span class="step-badge">3</span> Indices Détectés par l'IA</h2>
+              </div>
+              <div class="card-body">
+                <div class="ai-extracted-data">
+                  <div class="input-group">
+                    <label for="ai-legend-obverse">Légende Avers Détectée</label>
+                    <input type="text" id="ai-legend-obverse" placeholder="Légende avers...">
+                  </div>
+                  <div class="input-group">
+                    <label for="ai-legend-reverse">Légende Revers Détectée</label>
+                    <input type="text" id="ai-legend-reverse" placeholder="Légende revers...">
+                  </div>
+                  <div class="input-group">
+                    <label for="ai-iconography">Iconographie / Éléments Visuels</label>
+                    <textarea id="ai-iconography" rows="2" placeholder="De quoi a l'air la monnaie (portrait, divinité debout, etc.)..."></textarea>
+                  </div>
+                  <div class="input-group">
+                    <label for="ai-period">Époque / Empire Suggéré</label>
+                    <input type="text" id="ai-period" placeholder="ex: Empire Romain - Bas Empire">
+                  </div>
+                  <div class="alert alert-info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Vous pouvez corriger ou compléter ces légendes avant de lancer la recherche finale.</span>
+                  </div>
+                </div>
+
+                <button id="btn-trigger-match" class="btn btn-accent btn-block margin-top">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Trouver des correspondances dans le catalogue
+                </button>
+              </div>
+            </div>
+
+            <!-- Étape 4 : Résultats des correspondances du catalogue -->
+            <div id="matching-results-card" class="card glass-card hidden">
+              <div class="card-header">
+                <h2><span class="step-badge">4</span> Spécimens Identifiés</h2>
+                <span class="results-count" id="results-count">3 correspondances</span>
+              </div>
+              <div class="card-body">
+                <div class="candidates-list" id="candidates-list">
+                  <!-- Injecté par JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section Historique / Collection (Plein écran temporaire ou grille) -->
+      <section id="history-panel" class="panel hidden">
+        <div class="panel-header">
+          <button id="btn-back-to-scan" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Retour à l'identification
+          </button>
+          <h2>Ma Collection de Découvertes</h2>
+        </div>
+        <div class="collection-grid" id="collection-grid">
+          <!-- Injecté par JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Dialogue de confirmation de sauvegarde -->
+  <div id="save-modal" class="modal hidden">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Enregistrer la découverte</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 15px;">Complétez ou modifiez les détails de la monnaie avant de l'enregistrer dans votre collection.</p>
+        
+        <div class="input-group">
+          <label for="save-coin-title">Nom / Titre de la monnaie</label>
+          <input type="text" id="save-coin-title" placeholder="ex: 10 Centimes Napoléon III (Tête laurée)">
+        </div>
+        
+        <div class="row-inputs">
+          <div class="input-group flex-1">
+            <label for="save-coin-issuer">Émetteur / Pays</label>
+            <input type="text" id="save-coin-issuer" placeholder="ex: France / Empire Français">
+          </div>
+          <div class="input-group flex-1">
+            <label for="save-coin-year">Année / Période</label>
+            <input type="text" id="save-coin-year" placeholder="ex: 1864">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="save-coin-ref-url">Lien de référence (Numista / CGB / OCRE)</label>
+          <input type="text" id="save-coin-ref-url" placeholder="ex: https://fr.numista.com/catalogue/pieces320.html">
+        </div>
+
+        <div class="input-group">
+          <label for="save-user-notes">Notes de découverte (lieu, profondeur, état...)</label>
+          <textarea id="save-user-notes" rows="3" placeholder="ex: Trouvé en lisière de forêt, patine verte très fragile..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-close-modal">Annuler</button>
+        <button id="btn-confirm-save" class="btn btn-accent">Enregistrer dans ma collection</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

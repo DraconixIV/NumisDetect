@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: numisdetect
+    env: docker
+    plan: free
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false

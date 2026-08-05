@@ -1,0 +1,21 @@
+{
+  "name": "numismatique-detect",
+  "version": "1.0.0",
+  "description": "Application d'identification de monnaies de détection de métaux",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch-path=server.js --watch-path=database.js server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "localtunnel": "^2.0.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.11.5",
+    "sqlite3": "^5.1.7"
+  }
+}
