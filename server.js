@@ -948,6 +948,8 @@ app.post('/api/double-check', async (req, res) => {
     const resultJson = JSON.parse(mistralData.choices[0].message.content);
 
     const cleanCgbQuery = title
+      .replace(/\b(tête|tete)\s+(nue|laurée|lauree)\b/gi, '')
+      .replace(/\b(argent|bronze|cuivre|or|billon)\b/gi, '')
       .replace(/-/g, ' ')
       .replace(/[^\w\sÀ-ÿ]/gi, '')
       .replace(/\s+/g, ' ')
@@ -955,7 +957,7 @@ app.post('/api/double-check', async (req, res) => {
 
     const queryEscaped = encodeURIComponent(title);
     const cgbQueryEscaped = encodeURIComponent(cleanCgbQuery);
-    resultJson.cgbSearchUrl = `https://www.cgb.fr/boutique_recherche.html?q=${cgbQueryEscaped}`;
+    resultJson.cgbSearchUrl = `https://www.cgb.fr/recherche?q=${cgbQueryEscaped}`;
     resultJson.numistaSearchUrl = `https://fr.numista.com/catalogue/index.php?r=${queryEscaped}`;
 
     res.json(resultJson);
