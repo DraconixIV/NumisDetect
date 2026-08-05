@@ -948,7 +948,7 @@ app.post('/api/double-check', async (req, res) => {
     const resultJson = JSON.parse(mistralData.choices[0].message.content);
 
     const queryEscaped = encodeURIComponent(title);
-    resultJson.cgbSearchUrl = `https://www.cgb.fr/recherche?q=${queryEscaped}`;
+    resultJson.cgbSearchUrl = `https://www.cgb.fr/boutique_recherche.html?q=${queryEscaped}`;
     resultJson.numistaSearchUrl = `https://fr.numista.com/catalogue/index.php?r=${queryEscaped}`;
 
     res.json(resultJson);
