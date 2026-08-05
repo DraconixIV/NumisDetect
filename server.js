@@ -947,8 +947,15 @@ app.post('/api/double-check', async (req, res) => {
     const mistralData = await response.json();
     const resultJson = JSON.parse(mistralData.choices[0].message.content);
 
+    const cleanCgbQuery = title
+      .replace(/-/g, ' ')
+      .replace(/[^\w\sÀ-ÿ]/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
     const queryEscaped = encodeURIComponent(title);
-    resultJson.cgbSearchUrl = `https://www.cgb.fr/boutique_recherche.html?q=${queryEscaped}`;
+    const cgbQueryEscaped = encodeURIComponent(cleanCgbQuery);
+    resultJson.cgbSearchUrl = `https://www.cgb.fr/boutique_recherche.html?q=${cgbQueryEscaped}`;
     resultJson.numistaSearchUrl = `https://fr.numista.com/catalogue/index.php?r=${queryEscaped}`;
 
     res.json(resultJson);
