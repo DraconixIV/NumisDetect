@@ -776,62 +776,101 @@ app.post('/api/identify', async (req, res) => {
     // --- RECHERCHE NUMISTA ---
     if (numistaKey) {
       console.log("Recherche Numista initiée...");
-      let query = '';
+      let cleanRuler = '';
+      if (period) {
+        cleanRuler = period.replace(/\(.*?\)/g, '').replace(/Royale Française -/gi, '').replace(/Royaume de France -/gi, '').trim();
+      }
+
+      const queries = new Set();
       const legendsCombined = [legendObverse, legendReverse].filter(Boolean).join(' ').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
       if (legendsCombined && legendsCombined.length > 5) {
-        query = legendsCombined;
-      } else {
-        query = (suggestedTerms || []).join(' ') || period || legendObverse || '';
+        queries.add(legendsCombined);
       }
-      if (query) {
-        const numistaUrl = `https://api.numista.com/v3/types?q=${encodeURIComponent(query)}`;
-        const numistaRes = await fetch(numistaUrl, {
-          headers: {
-            'Numista-API-Key': numistaKey,
-            'User-Agent': 'NumisDetect App'
+      if (cleanRuler && legendObverse) {
+        queries.add(`${cleanRuler} ${legendObverse.replace(/\+/g, '').replace(/\./g, ' ').trim()}`);
+      }
+      if (cleanRuler && legendReverse) {
+        queries.add(`${cleanRuler} ${legendReverse.replace(/\+/g, '').replace(/\./g, ' ').trim()}`);
+      }
+      if (cleanRuler) {
+        const keyTerms = (suggestedTerms || []).slice(0, 3).join(' ');
+        if (keyTerms) {
+          queries.add(`${cleanRuler} ${keyTerms}`);
+        } else {
+          queries.add(cleanRuler);
+        }
+      }
+
+      const queryList = Array.from(queries);
+      if (queryList.length > 0) {
+        const numistaPromises = queryList.map(async (q) => {
+          try {
+            const numistaUrl = `https://api.numista.com/v3/types?q=${encodeURIComponent(q)}`;
+            const numistaRes = await fetch(numistaUrl, {
+              headers: {
+                'Numista-API-Key': numistaKey,
+                'User-Agent': 'NumisDetect App'
+              }
+            });
+            if (numistaRes.status === 200) {
+              const data = await numistaRes.json();
+              return data.types || [];
+            }
+          } catch (e) {
+            console.error(`Erreur recherche Numista pour "${q}":`, e);
           }
+          return [];
         });
 
-        if (numistaRes.status === 200) {
-          const numistaData = await numistaRes.json();
-          if (numistaData.types && numistaData.types.length > 0) {
-            const numistaCoinsPromises = numistaData.types.slice(0, 5).map(async coin => {
-              let refWeight = null;
-              let refDiameter = null;
-              let refMetal = "Bronze";
-              let imageObverse = coin.obverse_thumbnail || '';
-              let imageReverse = coin.reverse_thumbnail || '';
-
-              // Récupérer les détails de la fiche (poids, diamètre) pour le scoring hybride
-              const details = await fetchNumistaCoinDetails(coin.id, numistaKey);
-              if (details) {
-                refWeight = details.weight;
-                refDiameter = details.diameter;
-                refMetal = details.metal || "Bronze";
-                if (details.obverseImage) imageObverse = details.obverseImage;
-                if (details.reverseImage) imageReverse = details.reverseImage;
-              }
-
-              return {
-                id: `numista-${coin.id}`,
-                title: coin.title,
-                issuer: coin.issuer?.name || "Inconnu",
-                year: coin.min_year === coin.max_year ? `${coin.min_year}` : `${coin.min_year} - ${coin.max_year}`,
-                metal: refMetal,
-                referenceWeight: refWeight,
-                referenceDiameter: refDiameter,
-                referenceAxis: null,
-                description: `Type: ${coin.object_type?.name || 'Pièce'}. Composition : ${refMetal}.`,
-                imageObverse,
-                imageReverse,
-                referenceUrl: `https://fr.numista.com/catalogue/pieces${coin.id}.html`,
-                source: 'Numista'
-              };
-            });
-            
-            const numistaCoins = await Promise.all(numistaCoinsPromises);
-            candidates = [...candidates, ...numistaCoins];
+        const resultsArray = await Promise.all(numistaPromises);
+        const seenIds = new Set();
+        const uniqueTypes = [];
+        for (const typesList of resultsArray) {
+          for (const t of typesList) {
+            if (!seenIds.has(t.id)) {
+              seenIds.add(t.id);
+              uniqueTypes.push(t);
+            }
           }
+        }
+
+        if (uniqueTypes.length > 0) {
+          // Limiter le nombre de requêtes de détails (max 10 pour les performances)
+          const numistaCoinsPromises = uniqueTypes.slice(0, 10).map(async coin => {
+            let refWeight = null;
+            let refDiameter = null;
+            let refMetal = "Bronze";
+            let imageObverse = coin.obverse_thumbnail || '';
+            let imageReverse = coin.reverse_thumbnail || '';
+
+            const details = await fetchNumistaCoinDetails(coin.id, numistaKey);
+            if (details) {
+              refWeight = details.weight;
+              refDiameter = details.diameter;
+              refMetal = details.metal || "Bronze";
+              if (details.obverseImage) imageObverse = details.obverseImage;
+              if (details.reverseImage) imageReverse = details.reverseImage;
+            }
+
+            return {
+              id: `numista-${coin.id}`,
+              title: coin.title,
+              issuer: coin.issuer?.name || "Inconnu",
+              year: coin.min_year === coin.max_year ? `${coin.min_year}` : `${coin.min_year} - ${coin.max_year}`,
+              metal: refMetal,
+              referenceWeight: refWeight,
+              referenceDiameter: refDiameter,
+              referenceAxis: null,
+              description: `Type: ${coin.object_type?.name || 'Pièce'}. Composition : ${refMetal}.`,
+              imageObverse,
+              imageReverse,
+              referenceUrl: `https://fr.numista.com/catalogue/pieces${coin.id}.html`,
+              source: 'Numista'
+            };
+          });
+
+          const numistaCoins = await Promise.all(numistaCoinsPromises);
+          candidates = [...candidates, ...numistaCoins];
         }
       }
     }
