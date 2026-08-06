@@ -1132,6 +1132,20 @@ app.post('/api/identify', async (req, res) => {
         }
       }
 
+      // 6. Bonus pour le type exact (ex: "1er type", "2e type")
+      if (cand.source === 'CGB' && directIdentification && directIdentification.title) {
+        const targetTitleLower = directIdentification.title.toLowerCase();
+        const candTitleLower = cand.title.toLowerCase();
+        const typeMatch = targetTitleLower.match(/(\d+)(er|e|nd|rd)?\s*type/i);
+        if (typeMatch) {
+          const typeNum = typeMatch[1];
+          const typeRegex = new RegExp(typeNum + '(er|e|nd|rd)?\\s*type', 'i');
+          if (typeRegex.test(candTitleLower)) {
+            score += 15; // Bonus de type exact !
+          }
+        }
+      }
+
       // Borner le score final entre 5% et 99%
       let finalScore = Math.max(5, Math.min(99, score));
       
