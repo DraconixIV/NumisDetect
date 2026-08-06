@@ -1192,8 +1192,16 @@ app.post('/api/identify', async (req, res) => {
       };
     });
 
-    // Trier les candidats par score descendant
-    scoredCandidates.sort((a, b) => b.matchScore - a.matchScore);
+    // Trier les candidats par score descendant (avec tie-breaker CGB)
+    scoredCandidates.sort((a, b) => {
+      if (b.matchScore !== a.matchScore) {
+        return b.matchScore - a.matchScore;
+      }
+      // Privilégier CGB en cas d'égalité pour faire remonter les fiches concrètes
+      if (a.source === 'CGB' && b.source !== 'CGB') return -1;
+      if (b.source === 'CGB' && a.source !== 'CGB') return 1;
+      return 0;
+    });
 
     res.json({ candidates: scoredCandidates.slice(0, 30) });
   } catch (err) {
