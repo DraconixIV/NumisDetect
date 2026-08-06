@@ -97,6 +97,11 @@ function findBestMatchingType(types, targetTitle) {
       }
     }
     
+    // Donner un bonus de score de +5 si le type possède au moins une image de référence (avers ou revers)
+    if (type.obverse_thumbnail || type.reverse_thumbnail) {
+      score += 5;
+    }
+
     if (score > bestScore) {
       bestScore = score;
       bestType = type;
@@ -701,8 +706,13 @@ app.post('/api/identify', async (req, res) => {
     // --- RECHERCHE NUMISTA ---
     if (numistaKey) {
       console.log("Recherche Numista initiée...");
-      // Construire des mots clés pour la recherche Numista
-      const query = (suggestedTerms || []).join(' ') || period || legendObverse || '';
+      let query = '';
+      const legendsCombined = [legendObverse, legendReverse].filter(Boolean).join(' ').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+      if (legendsCombined && legendsCombined.length > 5) {
+        query = legendsCombined;
+      } else {
+        query = (suggestedTerms || []).join(' ') || period || legendObverse || '';
+      }
       if (query) {
         const numistaUrl = `https://api.numista.com/v3/types?q=${encodeURIComponent(query)}`;
         const numistaRes = await fetch(numistaUrl, {
@@ -760,10 +770,21 @@ app.post('/api/identify', async (req, res) => {
     const scoredCandidates = candidates.map(cand => {
       let score = 50; // Score de base pour un résultat retourné par la recherche de l'API
 
+      // Détecter si les légendes fournies par le client sont présentes
+      const hasUserLegends = !!(legendObverse || legendReverse);
+      const descLower = (cand.description || '').toLowerCase() + ' ' + cand.title.toLowerCase();
+      let matchesAnyLegend = false;
+      if (hasUserLegends) {
+        const cleanObv = legendObverse ? legendObverse.toLowerCase().trim() : '';
+        const cleanRev = legendReverse ? legendReverse.toLowerCase().trim() : '';
+        if (cleanObv && descLower.includes(cleanObv.replace(/vs$/, '').substring(0, 5))) matchesAnyLegend = true;
+        if (cleanRev && descLower.includes(cleanRev.replace(/vs$/, '').substring(0, 5))) matchesAnyLegend = true;
+      }
+
       if (cand.id === 'ai-direct') {
-        score = 75; // Base plus élevée pour l'estimation principale de l'IA
+        score = (hasUserLegends && !matchesAnyLegend) ? 50 : 75; // Perte de l'avantage si contradiction avec les légendes corrigées
       } else if (cand.id && cand.id.startsWith('ai-doublecheck')) {
-        score = 65; // Base intermédiaire pour le double-check de l'IA
+        score = (hasUserLegends && !matchesAnyLegend) ? 50 : 65;
       }
 
       // 1. Scoring du Métal (+20 ou -20)
@@ -797,21 +818,31 @@ app.post('/api/identify', async (req, res) => {
         else if (diffPercent > 0.30) score -= 65; // Mismatch critique
       }
 
-      // 4. Scoring Textuel sur les légendes (max +20 points)
+      // 4. Scoring Textuel sur les légendes avec racinisation (max +30 points)
       let textMatchBonus = 0;
-      const descLower = (cand.description || '').toLowerCase() + ' ' + cand.title.toLowerCase();
       
-      if (legendObverse) {
-        const cleanLegend = legendObverse.replace(/\./g, '').toLowerCase().trim();
-        if (cleanLegend.length > 3 && descLower.includes(cleanLegend)) {
-          textMatchBonus += 10;
+      const allLegendWords = [legendObverse, legendReverse]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\./g, ' ')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length > 2 && w !== 'rex' && w !== 'civis');
+
+      for (const word of allLegendWords) {
+        // Racinisation basique : on enlève la désinence "vs" ou on garde les 5 premières lettres
+        const cleanWord = word.replace(/vs$/, '').substring(0, 5);
+        if (descLower.includes(cleanWord)) {
+          textMatchBonus += 10; // +10 pour chaque mot de légende clé trouvé
         }
       }
-      if (legendReverse) {
-        const cleanLegend = legendReverse.replace(/\./g, '').toLowerCase().trim();
-        if (cleanLegend.length > 3 && descLower.includes(cleanLegend)) {
-          textMatchBonus += 10;
-        }
+      
+      // Bonus additionnel de +5 pour la correspondance exacte de la phrase entière
+      if (legendObverse && descLower.includes(legendObverse.toLowerCase().trim())) {
+        textMatchBonus += 5;
+      }
+      if (legendReverse && descLower.includes(legendReverse.toLowerCase().trim())) {
+        textMatchBonus += 5;
       }
       score += textMatchBonus;
 
