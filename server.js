@@ -1053,12 +1053,19 @@ app.post('/api/identify', async (req, res) => {
             // Deviner le métal à partir du titre
             let refMetal = "Billon";
             const titleLower = item.title.toLowerCase();
-            if (titleLower.includes("or ")) refMetal = "Or";
-            else if (titleLower.includes("argent")) refMetal = "Argent";
-            else if (titleLower.includes("cuivre")) refMetal = "Cuivre";
-            else if (titleLower.includes("bronze")) refMetal = "Bronze";
-            else if (titleLower.includes("billon")) refMetal = "Billon";
-            else if (cleanRuler && /louis xi|charles viii/i.test(cleanRuler)) refMetal = "Billon"; // Défaut pour cette époque royale
+            if (titleLower.includes("or ")) {
+              refMetal = "Or";
+            } else if (titleLower.includes("argent") || titleLower.includes("demi-franc") || titleLower.includes("demi franc") || titleLower.includes("1/2 franc") || titleLower.includes("½ franc") || titleLower.includes("1/4 franc") || titleLower.includes("quart de franc") || titleLower.includes(" quart (") || (titleLower.includes(" franc") && !titleLower.includes(" double") && !titleLower.includes(" or") && !titleLower.includes(" bronze") && !titleLower.includes(" laiton") && !titleLower.includes(" cuivre"))) {
+              refMetal = "Argent";
+            } else if (titleLower.includes("cuivre") || titleLower.includes("décime")) {
+              refMetal = "Cuivre";
+            } else if (titleLower.includes("bronze") || titleLower.includes("centimes")) {
+              refMetal = "Bronze";
+            } else if (titleLower.includes("billon")) {
+              refMetal = "Billon";
+            } else if (cleanRuler && /louis xi|charles viii/i.test(cleanRuler)) {
+              refMetal = "Billon";
+            }
 
             return {
               id: `cgb-${item.id}`,
@@ -1112,7 +1119,7 @@ app.post('/api/identify', async (req, res) => {
         if (candMetalLower.includes(inputMetalLower) || inputMetalLower.includes(candMetalLower)) {
           score += 20;
         } else {
-          score -= 10;
+          score -= 30; // Mismatch de métal significatif (ex: Argent vs Billon)
         }
       }
 
@@ -1302,7 +1309,7 @@ app.post('/api/double-check', async (req, res) => {
     }
 
     const payload = {
-      model: "mistral-large-latest",
+      model: "pixtral-12b-latest",
       messages: [
         {
           role: "user",
