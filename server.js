@@ -826,16 +826,16 @@ app.post('/api/identify', async (req, res) => {
       }
     }
 
+    let cleanRuler = '';
+    if (period) {
+      cleanRuler = period.replace(/\(.*?\)/g, '').replace(/Royale Française -/gi, '').replace(/Royaume de France -/gi, '').trim();
+    }
+    const legendsCombined = [legendObverse, legendReverse].filter(Boolean).join(' ').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+
     // --- RECHERCHE NUMISTA ---
     if (numistaKey) {
       console.log("Recherche Numista initiée...");
-      let cleanRuler = '';
-      if (period) {
-        cleanRuler = period.replace(/\(.*?\)/g, '').replace(/Royale Française -/gi, '').replace(/Royaume de France -/gi, '').trim();
-      }
-
       const queries = new Set();
-      const legendsCombined = [legendObverse, legendReverse].filter(Boolean).join(' ').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
       if (legendsCombined && legendsCombined.length > 5) {
         queries.add(legendsCombined);
       }
