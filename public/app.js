@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Événement d'Analyse Visuelle
   document.getElementById('btn-run-analysis').addEventListener('click', runAiAnalysis);
 
+  // Événement d'Inversion Avers/Revers manuelle
+  document.getElementById('btn-swap-images').addEventListener('click', swapUploadedImages);
+
   // Événement de Recherche Match
   document.getElementById('btn-trigger-match').addEventListener('click', runMatchSearch);
 
@@ -439,6 +442,37 @@ async function runAiAnalysis() {
     // 3. Appel de l'API d'analyse visuelle
     const result = await apiCall('/api/analyze', 'POST', formData);
     state.aiResults = result;
+
+    // Si l'IA a détecté une inversion, on permute également l'affichage et l'état en local
+    if (result.swapRequired === true || result.swapRequired === 'true') {
+      console.log("Permutation Avers/Revers automatique déclenchée par l'analyse IA...");
+      const tempObv = { ...state.images.obverse };
+      state.images.obverse = { ...state.images.reverse };
+      state.images.reverse = tempObv;
+      
+      // Mettre à jour les visualisations d'images
+      ['obverse', 'reverse'].forEach(face => {
+        const zone = document.getElementById(`zone-${face}`);
+        const previewContainer = zone.querySelector('.preview-container');
+        const imgPreview = document.getElementById(`img-preview-${face}`);
+        const btnFilter = zone.querySelector('.btn-filter');
+        const data = state.images[face];
+
+        if (data.base64) {
+          imgPreview.src = data.base64;
+          previewContainer.classList.remove('hidden');
+          previewContainer.classList.toggle('enhanced', data.enhanced);
+          btnFilter.style.color = data.enhanced ? 'var(--color-gold)' : '#fff';
+          updateImageStyle(face);
+        } else {
+          imgPreview.src = '';
+          previewContainer.classList.add('hidden');
+          previewContainer.classList.remove('enhanced');
+          btnFilter.style.color = '#fff';
+        }
+      });
+      showNotification('Avers/Revers automatiquement permutés pour correspondre à la réalité !', 'info');
+    }
 
     // 4. Remplissage des champs de validation
     document.getElementById('ai-legend-obverse').value = result.legendObverse || '';
@@ -1151,4 +1185,35 @@ function restoreDebugPersist() {
   // Forcer l'activation du bouton d'analyse
   const btn = document.getElementById('btn-run-analysis');
   if (btn) btn.disabled = false;
+}
+
+function swapUploadedImages() {
+  const tempObv = { ...state.images.obverse };
+  state.images.obverse = { ...state.images.reverse };
+  state.images.reverse = tempObv;
+
+  ['obverse', 'reverse'].forEach(face => {
+    const zone = document.getElementById(`zone-${face}`);
+    const previewContainer = zone.querySelector('.preview-container');
+    const imgPreview = document.getElementById(`img-preview-${face}`);
+    const btnFilter = zone.querySelector('.btn-filter');
+    const data = state.images[face];
+
+    if (data.base64) {
+      imgPreview.src = data.base64;
+      previewContainer.classList.remove('hidden');
+      previewContainer.classList.toggle('enhanced', data.enhanced);
+      btnFilter.style.color = data.enhanced ? 'var(--color-gold)' : '#fff';
+      updateImageStyle(face);
+    } else {
+      imgPreview.src = '';
+      previewContainer.classList.add('hidden');
+      previewContainer.classList.remove('enhanced');
+      btnFilter.style.color = '#fff';
+    }
+  });
+
+  checkAnalysisAvailability();
+  saveDebugPersist();
+  showNotification('Avers et Revers inversés !', 'info');
 }

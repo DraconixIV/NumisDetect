@@ -390,11 +390,13 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
          - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois. Cherche la légende d'avers correspondante ('+ PHILIPVS REX', '+ LVDOVICVS REX' ou '+ KAROLVS REX') et de revers comme '+ TVRONVS CIVIS'.
       4. Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
       5. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels (comme la lettre K couronnée pour Charles VIII, ou la première lettre du souverain) et les caractéristiques physiques.
+      6. Détermine si l'utilisateur a inversé les photos : si la première photo (Avers/Obverse) montre en fait le revers de la pièce (ex: la croix) et la seconde photo (Revers/Reverse) montre l'avers (ex: le motif principal, la couronne), définis "swapRequired": true. Sinon, définis "swapRequired": false.
       
       Effectue des recherches internes pour identifier cette monnaie de manière extrêmement fiable.
       
       Rends-moi un objet JSON contenant STRICTEMENT ces clés et aucun autre texte :
       {
+        "swapRequired": true/false (indique si les deux images doivent être inversées),
         "legendObverse": "Transcris les lettres décodées de l'avers. Remplis au maximum en extrapolant de manière experte (ex: 'PHILIPVS REX')",
         "legendReverse": "Transcris les lettres décodées du revers. Remplis au maximum (ex: 'TVRONVS CIVIS')",
         "iconography": "Description ultra-précise de l'avers (ex: 'Croix pattée au centre') et du revers (ex: 'Châtel tournois classique avec deux tours crenelées et toit pointu')",
@@ -524,6 +526,24 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
     const aiData = JSON.parse(content);
     aiData.obverseFilename = files.obverse[0].filename;
     aiData.reverseFilename = files.reverse[0].filename;
+
+    if (aiData.swapRequired === true || aiData.swapRequired === "true") {
+      console.log("Inversion Avers/Revers détectée par l'IA ! Permutation des fichiers sur le disque...");
+      try {
+        const tempPath = obversePath + '.temp';
+        fs.renameSync(obversePath, tempPath);
+        fs.renameSync(reversePath, obversePath);
+        fs.renameSync(tempPath, reversePath);
+
+        // Échanger également les noms de fichiers renvoyés
+        const tempFilename = aiData.obverseFilename;
+        aiData.obverseFilename = aiData.reverseFilename;
+        aiData.reverseFilename = tempFilename;
+      } catch (swapErr) {
+        console.error("Erreur lors de la permutation des fichiers physiques :", swapErr);
+      }
+    }
+
     return res.json(aiData);
   } catch (err) {
     console.error("Erreur d'analyse:", err);
