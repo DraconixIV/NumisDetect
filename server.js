@@ -378,10 +378,12 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
       CONSIGNES D'ANALYSE EXPERTE ET DE TRANSCRIPTION (OCR) :
       1. Ne cède JAMAIS à la facilité de déclarer les légendes "illisibles" ou "fragmentaires" si des caractères ou des formes géométriques sont visibles sur le pourtour.
       2. Analyse le pourtour de chaque face de manière circulaire. Les lettres médiévales ou romaines suivent la courbure de la pièce.
-      3. Utilise tes connaissances encyclopédiques en numismatique pour décoder et extrapoler les lettres usées :
-         - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois ou similaire (féodal ou royal). Cherche la légende d'avers comme '+ PHILIPVS REX', '+ LVD OVICVS REX' ou '+ KAROLVS REX' et de revers comme '+ TVRONVS CIVIS' ou '+ MET ALO'. Si tu reconnais ne serait-ce que 2 ou 3 lettres de ces motifs, reconstitue la titulature complète correspondante.
-         - Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
-      4. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels et physiques.
+      3. Sois extrêmement vigilant sur le nom du souverain (le premier mot de la légende de l'avers). Ne confonds pas KAROLVS (Charles), LVDOVICVS (Louis), PHILIPVS (Philippe), HENRICVS (Henri) ou FRANCISCVS (François).
+         - Si tu observes un 'K' gothique (souvent couronné, accosté de lys) ou si la légende débute par un K, c'est une monnaie de Charles (titulature '+ KAROLVS FRANCORVM REX' ou '+ KAROLVS REX', comme Charles VIII).
+         - Si tu observes un dauphin ou un L couronné, c'est une monnaie de Louis (titulature '+ LVDOVICVS FRANCORVM REX' ou '+ LVDOVICVS REX', comme Louis XI ou XII).
+         - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois. Cherche la légende d'avers correspondante ('+ PHILIPVS REX', '+ LVDOVICVS REX' ou '+ KAROLVS REX') et de revers comme '+ TVRONVS CIVIS'.
+      4. Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
+      5. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels (comme la lettre K couronnée pour Charles VIII) et les caractéristiques physiques.
       
       Effectue des recherches internes pour identifier cette monnaie de manière extrêmement fiable.
       
