@@ -520,6 +520,18 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
     const aiData = JSON.parse(content);
     aiData.obverseFilename = files.obverse[0].filename;
     aiData.reverseFilename = files.reverse[0].filename;
+    
+    // Détecter un identifiant CGB dans le nom de fichier d'origine (ex: bry_579492)
+    let detectedCgbId = null;
+    const obvOrig = files.obverse[0].originalname || "";
+    const revOrig = files.reverse[0].originalname || "";
+    const idMatch = obvOrig.match(/\b([a-z]{2,3}_\d+)\b/i) || revOrig.match(/\b([a-z]{2,3}_\d+)\b/i);
+    if (idMatch) {
+      detectedCgbId = idMatch[1].toLowerCase();
+      console.log(`[CGB ID DETECT] ID CGB extrait des fichiers : ${detectedCgbId}`);
+      aiData.cgbId = detectedCgbId;
+    }
+
     return res.json(aiData);
   } catch (err) {
     console.error("Erreur d'analyse:", err);
@@ -948,6 +960,11 @@ app.post('/api/identify', async (req, res) => {
     // --- RECHERCHE CGB ---
     console.log("Recherche CGB initiée...");
     const cgbQueries = new Set();
+
+    if (directIdentification && directIdentification.cgbId) {
+      console.log(`[CGB] Ajout de la requête par ID détecté : ${directIdentification.cgbId}`);
+      cgbQueries.add(directIdentification.cgbId);
+    }
     
     let cleanRulerCgb = cleanRuler;
     if (cleanRulerCgb) {
@@ -1146,6 +1163,13 @@ app.post('/api/identify', async (req, res) => {
         }
       }
 
+      // 7. Bonus de correspondance directe par ID de fichier
+      if (cand.source === 'CGB' && directIdentification && directIdentification.cgbId) {
+        if (cand.id.toLowerCase().includes(directIdentification.cgbId.toLowerCase())) {
+          score += 100; // Garantie d'être #1
+        }
+      }
+
       // Borner le score final entre 5% et 99%
       let finalScore = Math.max(5, Math.min(99, score));
       
@@ -1170,7 +1194,7 @@ app.post('/api/identify', async (req, res) => {
     // Trier les candidats par score descendant
     scoredCandidates.sort((a, b) => b.matchScore - a.matchScore);
 
-    res.json({ candidates: scoredCandidates.slice(0, 15) });
+    res.json({ candidates: scoredCandidates.slice(0, 30) });
   } catch (err) {
     console.error("Erreur d'identification:", err);
     res.status(500).send("Erreur d'identification : " + err.message);
