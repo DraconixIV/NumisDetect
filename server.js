@@ -421,10 +421,10 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
     let content = "";
     
     if (selectedModel === 'gemini' && geminiKey) {
-      console.log("Utilisation de Google Gemini (gemini-1.5-pro) pour l'analyse visuelle...");
+      console.log("Utilisation de Google Gemini (gemini-flash-latest) pour l'analyse visuelle...");
       const genAI = new GoogleGenerativeAI(geminiKey);
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-pro",
+        model: "gemini-flash-latest",
         generationConfig: { responseMimeType: "application/json" }
       });
       
