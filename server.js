@@ -383,6 +383,10 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
          - Si tu observes un dauphin ou un L couronné, c'est une monnaie de Louis (titulature '+ LVDOVICVS FRANCORVM REX' ou '+ LVDOVICVS REX', comme Louis XI ou XII).
          - Si la pièce présente trois fleurs de lys sous une couronne à l'avers (sans lettre centrale) et une croix au revers (comme un Double Tournois ou un Blanc), le souverain dépend uniquement de la première lettre de la titulature d'avers. Observe très attentivement s'il s'agit d'un K (KAROLVS = Charles VIII), d'un L (LVDOVICVS = Louis XI) ou d'un F (FRANCISCVS = François Ier) et déduis-en le bon souverain.
          - Si la pièce présente une unique grande couronne seule au centre de l'avers (sans lettre dessous, et sans fleurs de lys dessous) et une croix fleurdelisée au revers : c'est un Double Parisis (notamment de Philippe VI de Valois). La légende d'avers correspondante commence par PHILIPVS REX (ou PHILIP REX).
+           *ATTENTION AU TYPE* : Examine très attentivement ce qui se trouve directement SOUS la couronne dans le champ central de l'avers :
+           - S'il n'y a RIEN sous la couronne (ou un minuscule annelet), c'est le 1er type (ex: "Double parisis - Philippe VI (1er type)").
+           - Si tu observes une grande fleur de lys très distincte sous la couronne, c'est le 2e type (ex: "Double parisis - Philippe VI (2e type)").
+           - Indique impérativement "1er type", "2e type" ou "3e type" dans le titre de "directIdentification" et dans "suggestedSearchTerms" (ex: ["Double", "parisis", "Philippe", "VI", "1er", "type"]).
          - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois. Cherche la légende d'avers correspondante ('+ PHILIPVS REX', '+ LVDOVICVS REX' ou '+ KAROLVS REX') et de revers comme '+ TVRONVS CIVIS'.
       4. Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
       5. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels (comme la lettre K couronnée pour Charles VIII, ou la première lettre du souverain) et les caractéristiques physiques.
@@ -520,18 +524,6 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
     const aiData = JSON.parse(content);
     aiData.obverseFilename = files.obverse[0].filename;
     aiData.reverseFilename = files.reverse[0].filename;
-    
-    // Détecter un identifiant CGB dans le nom de fichier d'origine (ex: bry_579492)
-    let detectedCgbId = null;
-    const obvOrig = files.obverse[0].originalname || "";
-    const revOrig = files.reverse[0].originalname || "";
-    const idMatch = obvOrig.match(/\b([a-z]{2,3}_\d+)\b/i) || revOrig.match(/\b([a-z]{2,3}_\d+)\b/i);
-    if (idMatch) {
-      detectedCgbId = idMatch[1].toLowerCase();
-      console.log(`[CGB ID DETECT] ID CGB extrait des fichiers : ${detectedCgbId}`);
-      aiData.cgbId = detectedCgbId;
-    }
-
     return res.json(aiData);
   } catch (err) {
     console.error("Erreur d'analyse:", err);
@@ -961,11 +953,6 @@ app.post('/api/identify', async (req, res) => {
     console.log("Recherche CGB initiée...");
     const cgbQueries = new Set();
 
-    if (directIdentification && directIdentification.cgbId) {
-      console.log(`[CGB] Ajout de la requête par ID détecté : ${directIdentification.cgbId}`);
-      cgbQueries.add(directIdentification.cgbId);
-    }
-    
     let cleanRulerCgb = cleanRuler;
     if (cleanRulerCgb) {
       cleanRulerCgb = cleanRulerCgb.replace(/\b(de valois|de france|d'anjou|de navarre|d'aquitaine)\b/gi, '').trim();
@@ -1163,12 +1150,6 @@ app.post('/api/identify', async (req, res) => {
         }
       }
 
-      // 7. Bonus de correspondance directe par ID de fichier
-      if (cand.source === 'CGB' && directIdentification && directIdentification.cgbId) {
-        if (cand.id.toLowerCase().includes(directIdentification.cgbId.toLowerCase())) {
-          score += 100; // Garantie d'être #1
-        }
-      }
 
       // Borner le score final entre 5% et 99%
       let finalScore = Math.max(5, Math.min(99, score));
