@@ -1,4 +1,3 @@
-import sqlite3 from 'sqlite3';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -18,20 +17,6 @@ if (isPg) {
     connectionString: process.env.DATABASE_URL,
     ssl: {
       rejectUnauthorized: false
-    }
-  });
-} else {
-  console.log("Mode SQLite activé. Connexion locale...");
-  const dbDir = path.join(__dirname, 'data');
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-  const dbPath = path.join(dbDir, 'coins.db');
-  dbSqlite = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-      console.error('Erreur lors de la connexion à SQLite:', err.message);
-    } else {
-      console.log('Connecté à la base de données SQLite.');
     }
   });
 }
@@ -161,6 +146,24 @@ export const initDb = async () => {
       )
     `);
   } else {
+    if (!dbSqlite) {
+      console.log("Mode SQLite activé. Connexion locale...");
+      const dbDir = path.join(__dirname, 'data');
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+      const dbPath = path.join(dbDir, 'coins.db');
+      const sqlite3Module = await import('sqlite3');
+      const sqlite3 = sqlite3Module.default;
+      dbSqlite = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+          console.error('Erreur lors de la connexion à SQLite:', err.message);
+        } else {
+          console.log('Connecté à la base de données SQLite.');
+        }
+      });
+    }
+
     await run(`
       CREATE TABLE IF NOT EXISTS identified_coins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
