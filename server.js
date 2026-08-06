@@ -431,50 +431,62 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
     `;
 
     let content = "";
+    let geminiFailed = false;
     
     if (selectedModel === 'gemini' && geminiKey) {
       console.log("Utilisation de Google Gemini (gemini-flash-latest) pour l'analyse visuelle...");
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({
-        model: "gemini-flash-latest",
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      
-      const obversePart = {
-        inlineData: {
-          data: Buffer.from(fs.readFileSync(obversePath)).toString("base64"),
-          mimeType: "image/jpeg"
-        }
-      };
-      const reversePart = {
-        inlineData: {
-          data: Buffer.from(fs.readFileSync(reversePath)).toString("base64"),
-          mimeType: "image/jpeg"
-        }
-      };
-      
-      let retries = 3;
-      let delay = 1000;
-      while (retries > 0) {
-        try {
-          const result = await model.generateContent([
-            prompt,
-            obversePart,
-            reversePart
-          ]);
-          content = result.response.text().trim();
-          break; // Réussite, on sort de la boucle !
-        } catch (geminiErr) {
-          retries--;
-          console.warn(`Tentative de génération Gemini échouée (${3 - retries}/3). Erreur: ${geminiErr.message}`);
-          if (retries === 0) {
-            throw geminiErr; // Plus d'essais restants, on propage l'erreur
+      try {
+        const genAI = new GoogleGenerativeAI(geminiKey);
+        const model = genAI.getGenerativeModel({
+          model: "gemini-flash-latest",
+          generationConfig: { responseMimeType: "application/json" }
+        });
+        
+        const obversePart = {
+          inlineData: {
+            data: Buffer.from(fs.readFileSync(obversePath)).toString("base64"),
+            mimeType: "image/jpeg"
           }
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 1.5;
+        };
+        const reversePart = {
+          inlineData: {
+            data: Buffer.from(fs.readFileSync(reversePath)).toString("base64"),
+            mimeType: "image/jpeg"
+          }
+        };
+        
+        let retries = 3;
+        let delay = 1000;
+        while (retries > 0) {
+          try {
+            const result = await model.generateContent([
+              prompt,
+              obversePart,
+              reversePart
+            ]);
+            content = result.response.text().trim();
+            break; // Réussite, on sort de la boucle !
+          } catch (geminiErr) {
+            retries--;
+            console.warn(`Tentative de génération Gemini échouée (${3 - retries}/3). Erreur: ${geminiErr.message}`);
+            if (retries === 0) {
+              throw geminiErr; // Plus d'essais restants, on propage l'erreur pour déclencher la bascule
+            }
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 1.5;
+          }
+        }
+      } catch (err) {
+        console.warn("Échec complet ou dépassement de quota Gemini, bascule automatique sur Mistral...", err.message);
+        if (mistralKey) {
+          geminiFailed = true;
+        } else {
+          throw err; // Si pas de clé Mistral de secours, on propage l'erreur
         }
       }
-    } else {
+    }
+
+    if (selectedModel !== 'gemini' || !geminiKey || geminiFailed) {
       console.log("Utilisation de Mistral AI (Pixtral 12B) pour l'analyse visuelle...");
       const obverseBase64 = Buffer.from(fs.readFileSync(obversePath)).toString("base64");
       const reverseBase64 = Buffer.from(fs.readFileSync(reversePath)).toString("base64");
