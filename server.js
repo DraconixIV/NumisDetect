@@ -948,18 +948,37 @@ app.post('/api/identify', async (req, res) => {
     // --- RECHERCHE CGB ---
     console.log("Recherche CGB initiée...");
     const cgbQueries = new Set();
-    if (legendsCombined && legendsCombined.length > 5) {
-      cgbQueries.add(legendsCombined);
+    
+    let cleanRulerCgb = cleanRuler;
+    if (cleanRulerCgb) {
+      cleanRulerCgb = cleanRulerCgb.replace(/\b(de valois|de france|d'anjou|de navarre|d'aquitaine)\b/gi, '').trim();
     }
-    if (cleanRuler && legendObverse) {
-      cgbQueries.add(`${cleanRuler} ${legendObverse.replace(/\+/g, '').replace(/\./g, ' ').trim()}`);
-    }
-    if (cleanRuler) {
+
+    if (cleanRulerCgb) {
+      // 1. Souverain + Mots-clés suggérés
       const terms = (suggestedTerms || []).slice(0, 2).join(' ');
       if (terms) {
-        cgbQueries.add(`${cleanRuler} ${terms}`);
+        cgbQueries.add(`${cleanRulerCgb} ${terms}`);
       } else {
-        cgbQueries.add(cleanRuler);
+        cgbQueries.add(cleanRulerCgb);
+      }
+      
+      // 2. Souverain + Légende Avers courte
+      if (legendObverse) {
+        const cleanObv = legendObverse.replace(/\+/g, '').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+        const shortObv = cleanObv.split(/\s+/).slice(0, 2).join(' ');
+        if (shortObv) {
+          cgbQueries.add(`${cleanRulerCgb} ${shortObv}`);
+        }
+      }
+    }
+    
+    // 3. Légende d'avers courte seule
+    if (legendObverse) {
+      const cleanObv = legendObverse.replace(/\+/g, '').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+      const shortObv = cleanObv.split(/\s+/).slice(0, 2).join(' ');
+      if (shortObv) {
+        cgbQueries.add(shortObv);
       }
     }
 
@@ -980,7 +999,8 @@ app.post('/api/identify', async (req, res) => {
         }
 
         if (uniqueCgbResults.length > 0) {
-          const cgbCoins = uniqueCgbResults.slice(0, 10).map(item => {
+          // Traiter jusqu'à 40 résultats CGB (pas de coût API pour les détails de CGB car synchrones)
+          const cgbCoins = uniqueCgbResults.slice(0, 40).map(item => {
             // Extraire le poids (ex: "1,25g" ou "0.85 g")
             const weightMatch = item.title.match(/(\d+[\.,]\d+)\s*g/i);
             const refWeight = weightMatch ? parseFloat(weightMatch[1].replace(',', '.')) : null;
@@ -1102,6 +1122,15 @@ app.post('/api/identify', async (req, res) => {
         textMatchBonus += 5;
       }
       score += textMatchBonus;
+
+      // 5. Bonus de souverain pour les candidats CGB
+      if (cand.source === 'CGB' && cleanRuler) {
+        const rulerCleaned = cleanRuler.replace(/\b(de valois|de france|d'anjou|de navarre|d'aquitaine)\b/gi, '').trim().toLowerCase();
+        const titleLower = cand.title.toLowerCase();
+        if (titleLower.includes(rulerCleaned) || rulerCleaned.includes(titleLower)) {
+          score += 25; // Bonus de souveraineté pour CGB
+        }
+      }
 
       // Borner le score final entre 5% et 99%
       let finalScore = Math.max(5, Math.min(99, score));
