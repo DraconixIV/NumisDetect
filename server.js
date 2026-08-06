@@ -510,6 +510,57 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
   }
 });
 
+async function searchCgb(query) {
+  try {
+    const res = await fetch('https://www.cgb.fr/ajax/js_recherche.php', {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://www.cgb.fr/'
+      },
+      body: `data=${encodeURIComponent(query)}&page=1&enstock=false&titre=false&exact=false&reinit=false`
+    });
+    
+    if (res.status !== 200) return [];
+    
+    const json = await res.json();
+    if (!json.message) return [];
+    
+    const html = json.message;
+    const results = [];
+    
+    const blockRegex = /<a\s+href='([^']+)'.*?title='([^']+)'.*?class='identifiant'>([^<]+)<\/div>/gs;
+    let match;
+    while ((match = blockRegex.exec(html)) !== null) {
+      const link = match[1];
+      const title = match[2];
+      const id = match[3].trim();
+      
+      const slice = html.slice(match.index, match.index + 800);
+      const imgMatch = slice.match(/data-src='([^']+)'/) || slice.match(/src='([^']+)'/);
+      let image = imgMatch ? imgMatch[1] : '';
+      if (image && !image.startsWith('http')) {
+        image = 'https:' + image;
+      }
+      
+      const fullLink = link.startsWith('http') ? link : `https://www.cgb.fr/${link}`;
+      
+      results.push({
+        id: id,
+        title: title,
+        image: image,
+        url: fullLink
+      });
+    }
+    
+    return results;
+  } catch (err) {
+    console.error("Erreur lors de la recherche CGB:", err);
+    return [];
+  }
+}
+
 // ----------------------------------------------------
 // ROUTE : MOTEUR DE RECHERCHE HYBRIDE & IDENTIFICATION
 // ----------------------------------------------------
@@ -874,6 +925,84 @@ app.post('/api/identify', async (req, res) => {
           const numistaCoins = await Promise.all(numistaCoinsPromises);
           candidates = [...candidates, ...numistaCoins];
         }
+      }
+    }
+
+    // --- RECHERCHE CGB ---
+    console.log("Recherche CGB initiée...");
+    const cgbQueries = new Set();
+    if (legendsCombined && legendsCombined.length > 5) {
+      cgbQueries.add(legendsCombined);
+    }
+    if (cleanRuler && legendObverse) {
+      cgbQueries.add(`${cleanRuler} ${legendObverse.replace(/\+/g, '').replace(/\./g, ' ').trim()}`);
+    }
+    if (cleanRuler) {
+      const terms = (suggestedTerms || []).slice(0, 2).join(' ');
+      if (terms) {
+        cgbQueries.add(`${cleanRuler} ${terms}`);
+      } else {
+        cgbQueries.add(cleanRuler);
+      }
+    }
+
+    const cgbQueryList = Array.from(cgbQueries);
+    if (cgbQueryList.length > 0) {
+      try {
+        const cgbPromises = cgbQueryList.map(q => searchCgb(q));
+        const cgbResultsArray = await Promise.all(cgbPromises);
+        const cgbSeenIds = new Set();
+        const uniqueCgbResults = [];
+        for (const list of cgbResultsArray) {
+          for (const item of list) {
+            if (!cgbSeenIds.has(item.id)) {
+              cgbSeenIds.add(item.id);
+              uniqueCgbResults.push(item);
+            }
+          }
+        }
+
+        if (uniqueCgbResults.length > 0) {
+          const cgbCoins = uniqueCgbResults.slice(0, 10).map(item => {
+            // Extraire le poids (ex: "1,25g" ou "0.85 g")
+            const weightMatch = item.title.match(/(\d+[\.,]\d+)\s*g/i);
+            const refWeight = weightMatch ? parseFloat(weightMatch[1].replace(',', '.')) : null;
+
+            // Extraire le diamètre (ex: "20 mm" ou "20mm")
+            const diaMatch = item.title.match(/(\d+)\s*mm/i);
+            const refDiameter = diaMatch ? parseFloat(diaMatch[1]) : null;
+
+            // Deviner le métal à partir du titre
+            let refMetal = "Billon";
+            const titleLower = item.title.toLowerCase();
+            if (titleLower.includes("or ")) refMetal = "Or";
+            else if (titleLower.includes("argent")) refMetal = "Argent";
+            else if (titleLower.includes("cuivre")) refMetal = "Cuivre";
+            else if (titleLower.includes("bronze")) refMetal = "Bronze";
+            else if (titleLower.includes("billon")) refMetal = "Billon";
+            else if (cleanRuler && /louis xi|charles viii/i.test(cleanRuler)) refMetal = "Billon"; // Défaut pour cette époque royale
+
+            return {
+              id: `cgb-${item.id}`,
+              title: item.title,
+              issuer: "Royaume de France",
+              year: cleanRuler ? cleanRuler : "Médiévale / Royale",
+              metal: refMetal,
+              referenceWeight: refWeight,
+              referenceDiameter: refDiameter,
+              referenceAxis: null,
+              description: `Monnaie de comparaison trouvée sur CGB.fr. Réf: ${item.id}.`,
+              imageObverse: item.image,
+              imageReverse: "",
+              referenceUrl: item.url,
+              source: 'CGB'
+            };
+          });
+
+          candidates = [...candidates, ...cgbCoins];
+        }
+      } catch (cgbErr) {
+        console.error("Erreur lors de l'intégration des résultats CGB:", cgbErr);
       }
     }
 
