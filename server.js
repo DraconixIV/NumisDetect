@@ -270,9 +270,9 @@ app.get('/api/proxy-image', async (req, res) => {
 // ----------------------------------------------------
 app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name: 'reverse', maxCount: 1 }]), async (req, res) => {
   try {
-    const selectedModel = await getSetting('selected_model') || 'pixtral';
-    const mistralKey = await getSetting('mistral_key');
-    const geminiKey = await getSetting('google_key');
+    const selectedModel = await getSetting('selected_model') || process.env.SELECTED_MODEL || 'pixtral';
+    const mistralKey = await getSetting('mistral_key') || process.env.MISTRAL_API_KEY;
+    const geminiKey = await getSetting('google_key') || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     
     if (selectedModel === 'gemini') {
       if (!geminiKey) {
