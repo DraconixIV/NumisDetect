@@ -410,7 +410,7 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
       const reverseBase64 = Buffer.from(fs.readFileSync(reversePath)).toString("base64");
 
       const payload = {
-        model: "pixtral-large-latest",
+        model: "pixtral-12b-latest",
         messages: [
           {
             role: "user",
