@@ -477,16 +477,21 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
           }
         }
       } catch (err) {
-        console.warn("Échec complet ou dépassement de quota Gemini, bascule automatique sur Mistral...", err.message);
-        if (mistralKey) {
-          geminiFailed = true;
-        } else {
-          throw err; // Si pas de clé Mistral de secours, on propage l'erreur
+        console.error("Échec de l'appel Google Gemini :", err.message);
+        const errMsg = err.message || "";
+        if (errMsg.includes("quota") || errMsg.includes("429") || errMsg.includes("limit") || errMsg.includes("Rate limit") || errMsg.includes("Quota exceeded")) {
+          let delayMsg = "Veuillez patienter 1 minute avant de réessayer.";
+          const delayMatch = errMsg.match(/retryDelay['\"]\s*:\s*['\"](\d+[smh])['\"]/i) || errMsg.match(/retryDelay['\"]\s*:\s*['\"](\d+)\s*s['\"]/i);
+          if (delayMatch) {
+            delayMsg = `Veuillez patienter au moins ${delayMatch[1]} avant de réessayer.`;
+          } else if (errMsg.includes("daily") || errMsg.includes("day")) {
+            delayMsg = "Limite de quota quotidienne atteinte. Le quota gratuit de Google sera réinitialisé à minuit (heure Pacifique).";
+          }
+          return res.status(429).send(`Quota de requêtes gratuit de Google Gemini atteint ! ${delayMsg}`);
         }
+        throw err;
       }
-    }
-
-    if (selectedModel !== 'gemini' || !geminiKey || geminiFailed) {
+    } else {
       console.log("Utilisation de Mistral AI (Pixtral 12B) pour l'analyse visuelle...");
       const obverseBase64 = Buffer.from(fs.readFileSync(obversePath)).toString("base64");
       const reverseBase64 = Buffer.from(fs.readFileSync(reversePath)).toString("base64");
