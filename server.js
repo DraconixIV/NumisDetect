@@ -59,13 +59,20 @@ function extractNumistaId(url) {
   return null;
 }
 
-function findBestMatchingType(types, targetTitle) {
+function findBestMatchingType(types, targetTitle, targetYear) {
   if (!types || types.length === 0 || !targetTitle) return null;
   
   const cleanTarget = targetTitle.toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, " ");
   const targetWords = cleanTarget.split(/\s+/).filter(w => w.length > 0);
+
+  // Extraire une année numérique sur 4 chiffres
+  let yearNum = null;
+  const yearMatch = String(targetYear || '').match(/\b(1\d{3})\b/) || targetTitle.match(/\b(1\d{3})\b/);
+  if (yearMatch) {
+    yearNum = parseInt(yearMatch[1]);
+  }
 
   let bestType = null;
   let bestScore = -1;
@@ -96,6 +103,15 @@ function findBestMatchingType(types, targetTitle) {
     for (const num of typeNumbers) {
       if (!targetNumbers.includes(num)) {
         score -= 5;
+      }
+    }
+    
+    // Bonus/Pénalité de correspondance d'année pour cibler la bonne période historique (ex: 1811 vs AN 12)
+    if (yearNum && type.min_year && type.max_year) {
+      if (yearNum >= type.min_year && yearNum <= type.max_year) {
+        score += 25; // Bonus massif si l'année visée est dans l'intervalle du type
+      } else {
+        score -= 20; // Pénalité sévère si l'année est hors intervalle
       }
     }
     
@@ -146,8 +162,8 @@ async function fetchNumistaCoinDetails(coinId, numistaKey) {
   return null;
 }
 
-async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDiameter, defaultMetal) {
-  const cacheKey = `search-${title}`;
+async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDiameter, defaultMetal, targetYear) {
+  const cacheKey = `search-${title}-${targetYear || ''}`;
   if (numistaCache.has(cacheKey)) {
     return numistaCache.get(cacheKey);
   }
@@ -158,7 +174,6 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
   let refDiameter = defaultDiameter;
   let refMetal = defaultMetal;
   let refUrl = '';
-
   let refTitle = '';
 
   if (!numistaKey || !title) {
@@ -183,8 +198,8 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
     if (res.status === 200) {
       const data = await res.json();
       if (data.types && data.types.length > 0) {
-        // Sélectionner le meilleur match par pertinence de titre
-        const bestCoin = findBestMatchingType(data.types, title);
+        // Sélectionner le meilleur match par pertinence de titre et de date
+        const bestCoin = findBestMatchingType(data.types, title, targetYear);
         if (bestCoin) {
           refTitle = bestCoin.title || '';
           imageObverse = bestCoin.obverse_thumbnail || '';
@@ -208,7 +223,7 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
     numistaCache.set(cacheKey, result);
     return result;
   } catch (err) {
-    console.error(`Erreur correction Numista pour titre "${title}":`, err);
+    console.error("Erreur de correction Numista :", err);
   }
 
   return { title: refTitle, imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
@@ -655,7 +670,7 @@ app.post('/api/identify', async (req, res) => {
       // Correction prioritaire via recherche textuelle exacte
       let displayTitle = directIdentification.title;
       if (numistaKey && directIdentification.title) {
-        const corrected = await correctCoinViaNumista(directIdentification.title, numistaKey, refWeight, refDiameter, refMetal);
+        const corrected = await correctCoinViaNumista(directIdentification.title, numistaKey, refWeight, refDiameter, refMetal, directIdentification.year || period);
         if (corrected.imageObverse || corrected.imageReverse) {
           if (corrected.title) displayTitle = corrected.title;
           imageObverse = corrected.imageObverse;
@@ -724,7 +739,7 @@ app.post('/api/identify', async (req, res) => {
           let displayTitle = cand.title;
           // Correction prioritaire via recherche textuelle exacte
           if (numistaKey && cand.title) {
-            const corrected = await correctCoinViaNumista(cand.title, numistaKey, refWeight, refDiameter, refMetal);
+            const corrected = await correctCoinViaNumista(cand.title, numistaKey, refWeight, refDiameter, refMetal, cand.year || period);
             if (corrected.imageObverse || corrected.imageReverse) {
               if (corrected.title) displayTitle = corrected.title;
               imageObverse = corrected.imageObverse;
