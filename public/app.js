@@ -579,6 +579,16 @@ function renderCandidates() {
           </div>
         </div>
       `;
+    } else if (cand.source === 'CGB') {
+      // Pour CGB, l'image contient généralement les deux faces. On l'affiche en large (134px)
+      imagesHtml = `
+        <div style="display: flex; gap: 4px; flex-shrink: 0;">
+          <div class="candidate-img" style="width: 134px; height: 65px; background: rgba(0,0,0,0.2); border-radius: 8px;" title="Monnaie de référence CGB">
+            <img src="${obverseSrc}" referrerpolicy="no-referrer" alt="Réf CGB" style="object-fit: contain; width: 100%; height: 100%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="coin-placeholder" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.5rem; color: rgba(212, 175, 55, 0.3);"><i class="fa-solid fa-coins"></i></div>
+          </div>
+        </div>
+      `;
     } else {
       imagesHtml = `
         <div style="display: flex; gap: 4px; flex-shrink: 0;">
