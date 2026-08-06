@@ -110,7 +110,7 @@ function findBestMatchingType(types, targetTitle) {
     }
   }
 
-  return bestScore >= 1 ? bestType : types[0];
+  return bestScore >= 1 ? bestType : null;
 }
 
 async function fetchNumistaCoinDetails(coinId, numistaKey) {
@@ -185,21 +185,23 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
       if (data.types && data.types.length > 0) {
         // Sélectionner le meilleur match par pertinence de titre
         const bestCoin = findBestMatchingType(data.types, title);
-        refTitle = bestCoin.title || '';
-        imageObverse = bestCoin.obverse_thumbnail || '';
-        imageReverse = bestCoin.reverse_thumbnail || '';
-        
-        // Charger les caractéristiques physiques complètes via le type détaillé
-        const details = await fetchNumistaCoinDetails(bestCoin.id, numistaKey);
-        if (details) {
-          refTitle = details.title || refTitle;
-          imageObverse = details.obverseImage || imageObverse;
-          imageReverse = details.reverseImage || imageReverse;
-          if (details.weight) refWeight = details.weight;
-          if (details.diameter) refDiameter = details.diameter;
-          if (details.metal) refMetal = details.metal;
+        if (bestCoin) {
+          refTitle = bestCoin.title || '';
+          imageObverse = bestCoin.obverse_thumbnail || '';
+          imageReverse = bestCoin.reverse_thumbnail || '';
+          
+          // Charger les caractéristiques physiques complètes via le type détaillé
+          const details = await fetchNumistaCoinDetails(bestCoin.id, numistaKey);
+          if (details) {
+            refTitle = details.title || refTitle;
+            imageObverse = details.obverseImage || imageObverse;
+            imageReverse = details.reverseImage || imageReverse;
+            if (details.weight) refWeight = details.weight;
+            if (details.diameter) refDiameter = details.diameter;
+            if (details.metal) refMetal = details.metal;
+          }
+          refUrl = `https://fr.numista.com/catalogue/pieces${bestCoin.id}.html`;
         }
-        refUrl = `https://fr.numista.com/catalogue/pieces${bestCoin.id}.html`;
       }
     }
     const result = { title: refTitle, imageObverse, imageReverse, refWeight, refDiameter, refMetal, refUrl };
