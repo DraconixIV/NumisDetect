@@ -381,9 +381,10 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
       3. Sois extrêmement vigilant sur le nom du souverain (le premier mot de la légende de l'avers). Ne confonds pas KAROLVS (Charles), LVDOVICVS (Louis), PHILIPVS (Philippe), HENRICVS (Henri) ou FRANCISCVS (François).
          - Si tu observes un 'K' gothique (souvent couronné, accosté de lys) ou si la légende débute par un K, c'est une monnaie de Charles (titulature '+ KAROLVS FRANCORVM REX' ou '+ KAROLVS REX', comme Charles VIII).
          - Si tu observes un dauphin ou un L couronné, c'est une monnaie de Louis (titulature '+ LVDOVICVS FRANCORVM REX' ou '+ LVDOVICVS REX', comme Louis XI ou XII).
+         - Si la pièce présente trois fleurs de lys sous une couronne à l'avers (sans lettre centrale) et une croix au revers (comme un Double Tournois ou un Blanc), le souverain dépend uniquement de la première lettre de la titulature d'avers. Observe très attentivement s'il s'agit d'un K (KAROLVS = Charles VIII), d'un L (LVDOVICVS = Louis XI) ou d'un F (FRANCISCVS = François Ier) et déduis-en le bon souverain.
          - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois. Cherche la légende d'avers correspondante ('+ PHILIPVS REX', '+ LVDOVICVS REX' ou '+ KAROLVS REX') et de revers comme '+ TVRONVS CIVIS'.
       4. Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
-      5. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels (comme la lettre K couronnée pour Charles VIII) et les caractéristiques physiques.
+      5. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels (comme la lettre K couronnée pour Charles VIII, ou la première lettre du souverain) et les caractéristiques physiques.
       
       Effectue des recherches internes pour identifier cette monnaie de manière extrêmement fiable.
       
