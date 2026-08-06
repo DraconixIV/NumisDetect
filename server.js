@@ -382,12 +382,12 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
          - Si tu observes un 'K' gothique (souvent couronné, accosté de lys) ou si la légende débute par un K, c'est une monnaie de Charles (titulature '+ KAROLVS FRANCORVM REX' ou '+ KAROLVS REX', comme Charles VIII).
          - Si tu observes un dauphin ou un L couronné, c'est une monnaie de Louis (titulature '+ LVDOVICVS FRANCORVM REX' ou '+ LVDOVICVS REX', comme Louis XI ou XII).
          - Si la pièce présente trois fleurs de lys sous une couronne à l'avers (sans lettre centrale) et une croix au revers (comme un Double Tournois ou un Blanc), le souverain dépend uniquement de la première lettre de la titulature d'avers. Observe très attentivement s'il s'agit d'un K (KAROLVS = Charles VIII), d'un L (LVDOVICVS = Louis XI) ou d'un F (FRANCISCVS = François Ier) et déduis-en le bon souverain.
-         - Si la pièce présente une unique grande couronne seule au centre de l'avers (sans lettre dessous, et sans fleurs de lys dessous) et une croix fleurdelisée au revers : c'est un Double Parisis (notamment de Philippe VI de Valois). La légende d'avers correspondante commence par PHILIPVS REX (ou PHILIP REX).
-           *ATTENTION AU TYPE* : Examine très attentivement ce qui se trouve directement SOUS la couronne dans le champ central de l'avers :
-           - S'il n'y a RIEN sous la couronne (ou un minuscule annelet), c'est le 1er type (ex: "Double parisis - Philippe VI (1er type)").
-           - Si tu observes une grande fleur de lys très distincte sous la couronne, c'est le 2e type (ex: "Double parisis - Philippe VI (2e type)").
-           - Indique impérativement "1er type", "2e type" ou "3e type" dans le titre de "directIdentification" et dans "suggestedSearchTerms" (ex: ["Double", "parisis", "Philippe", "VI", "1er", "type"]).
-         - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois. Cherche la légende d'avers correspondante ('+ PHILIPVS REX', '+ LVDOVICVS REX' ou '+ KAROLVS REX') et de revers comme '+ TVRONVS CIVIS'.
+         - Si la pièce présente une unique grande couronne seule au centre de l'une de ses faces (sans lettre dessous, et sans fleurs de lys dessous) et une croix fleurdelisée sur l'autre face : c'est un Double Parisis (notamment de Philippe VI de Valois). La légende de la face avec la couronne commence par PHILIPVS REX (ou PHILIP REX).
+           *ATTENTION AU TYPE* : Examine très attentivement ce qui se trouve directement SOUS la couronne dans le champ central de la pièce :
+           - S'il n'y a RIEN sous la couronne (ou un minuscule annelet), c'est le 1er type (le titre dans "directIdentification" DOIT être : "Double parisis - Philippe VI (1er type)").
+           - Si tu observes une grande fleur de lys très distincte sous la couronne, c'est le 2e type (le titre dans "directIdentification" DOIT être : "Double parisis - Philippe VI (2e type)").
+           - Indique impérativement le type détecté ("1er type", "2e type" ou "3e type") dans le titre de "directIdentification.title" et dans "suggestedSearchTerms" (ex: ["Double", "parisis", "Philippe", "VI", "1er", "type"]).
+         - Si la pièce présente une croix sur l'une de ses faces et un château/bâtiment/châtel sur l'autre face, c'est le type Tournois. Cherche la légende correspondante ('+ PHILIPVS REX', '+ LVDOVICVS REX' ou '+ KAROLVS REX') et de revers comme '+ TVRONVS CIVIS'.
       4. Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
       5. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels (comme la lettre K couronnée pour Charles VIII, ou la première lettre du souverain) et les caractéristiques physiques.
       6. Détermine si l'utilisateur a inversé les photos : si la première photo (Avers/Obverse) montre en fait le revers de la pièce (ex: la croix) et la seconde photo (Revers/Reverse) montre l'avers (ex: le motif principal, la couronne), définis "swapRequired": true. Sinon, définis "swapRequired": false.
@@ -1205,16 +1205,17 @@ app.post('/api/identify', async (req, res) => {
 
       return {
         ...cand,
+        rawScore: score, // Garder le score réel brut pour le tri
         matchScore: Math.round(finalScore)
       };
     });
 
-    // Trier les candidats par score descendant (avec tie-breaker CGB)
+    // Trier les candidats par score brut descendant (avec tie-breaker CGB)
     scoredCandidates.sort((a, b) => {
-      if (b.matchScore !== a.matchScore) {
-        return b.matchScore - a.matchScore;
+      if (b.rawScore !== a.rawScore) {
+        return b.rawScore - a.rawScore;
       }
-      // Privilégier CGB en cas d'égalité pour faire remonter les fiches concrètes
+      // Privilégier CGB en cas d'égalité de score brut pour faire remonter les fiches concrètes
       if (a.source === 'CGB' && b.source !== 'CGB') return -1;
       if (b.source === 'CGB' && a.source !== 'CGB') return 1;
       return 0;
