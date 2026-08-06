@@ -446,12 +446,27 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
         }
       };
       
-      const result = await model.generateContent([
-        prompt,
-        obversePart,
-        reversePart
-      ]);
-      content = result.response.text().trim();
+      let retries = 3;
+      let delay = 1000;
+      while (retries > 0) {
+        try {
+          const result = await model.generateContent([
+            prompt,
+            obversePart,
+            reversePart
+          ]);
+          content = result.response.text().trim();
+          break; // Réussite, on sort de la boucle !
+        } catch (geminiErr) {
+          retries--;
+          console.warn(`Tentative de génération Gemini échouée (${3 - retries}/3). Erreur: ${geminiErr.message}`);
+          if (retries === 0) {
+            throw geminiErr; // Plus d'essais restants, on propage l'erreur
+          }
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 1.5;
+        }
+      }
     } else {
       console.log("Utilisation de Mistral AI (Pixtral 12B) pour l'analyse visuelle...");
       const obverseBase64 = Buffer.from(fs.readFileSync(obversePath)).toString("base64");
