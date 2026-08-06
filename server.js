@@ -17,8 +17,9 @@ const PORT = process.env.PORT || 3000;
 await db.initDb();
 
 // S'assurer que les dossiers nécessaires existent
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
+const isVercel = !!process.env.VERCEL;
+const uploadsDir = isVercel ? '/tmp' : path.join(__dirname, 'uploads');
+if (!isVercel && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 const publicDir = path.join(__dirname, 'public');
