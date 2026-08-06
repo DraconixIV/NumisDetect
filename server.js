@@ -1179,3 +1179,5 @@ app.delete('/api/history/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });
+
+export default app;

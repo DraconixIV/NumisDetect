@@ -153,7 +153,8 @@ export const initDb = async () => {
         fs.mkdirSync(dbDir, { recursive: true });
       }
       const dbPath = path.join(dbDir, 'coins.db');
-      const sqlite3Module = await import('sqlite3');
+      const moduleName = 'sqlite3';
+      const sqlite3Module = await import(moduleName);
       const sqlite3 = sqlite3Module.default;
       dbSqlite = new sqlite3.Database(dbPath, (err) => {
         if (err) {
