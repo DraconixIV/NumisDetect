@@ -164,7 +164,12 @@ async function correctCoinViaNumista(title, numistaKey, defaultWeight, defaultDi
   }
 
   try {
-    const cleanTitle = title.replace(/\(.*?\)/g, '').trim();
+    const cleanTitle = title
+      .replace(/\(.*?\)/g, '')
+      .replace(/\b(le bel|le hardi|le long|le fort|de valois|de lusignan)\b/gi, '')
+      .replace(/[-\/]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     const searchUrl = `https://api.numista.com/v3/types?q=${encodeURIComponent(cleanTitle)}`;
     const res = await fetch(searchUrl, {
       headers: {
@@ -511,18 +516,27 @@ app.post('/api/identify', async (req, res) => {
         }
       }
 
-      // Repli si échec
+      // Repli si échec (sécurisation anti-hallucination d'URL)
       if (!imageObverse && !imageReverse) {
         const numistaId = extractNumistaId(directIdentification.referenceUrl);
         if (numistaId && numistaKey) {
           const details = await fetchNumistaCoinDetails(numistaId, numistaKey);
           if (details) {
-            if (details.title) displayTitle = details.title;
-            imageObverse = details.obverseImage;
-            imageReverse = details.reverseImage;
-            if (details.weight) refWeight = details.weight;
-            if (details.diameter) refDiameter = details.diameter;
-            if (details.metal) refMetal = details.metal;
+            const cleanTitleLower = (details.title || '').toLowerCase();
+            const targetTitleLower = displayTitle.toLowerCase();
+            const commonWords = targetTitleLower.split(/\s+/).filter(w => w.length > 3 && !/argent|bronze|cuivre|billon|or/i.test(w));
+            const hasCommonWords = commonWords.some(w => cleanTitleLower.includes(w) || w.includes(cleanTitleLower));
+            
+            if (hasCommonWords) {
+              if (details.title) displayTitle = details.title;
+              imageObverse = details.obverseImage;
+              imageReverse = details.reverseImage;
+              if (details.weight) refWeight = details.weight;
+              if (details.diameter) refDiameter = details.diameter;
+              if (details.metal) refMetal = details.metal;
+            } else {
+              console.log(`Rejet de l'URL direct ID ${numistaId} : titre "${details.title}" ne correspond pas à "${displayTitle}"`);
+            }
           }
         }
       }
@@ -571,18 +585,27 @@ app.post('/api/identify', async (req, res) => {
             }
           }
 
-          // Repli si échec
+          // Repli si échec (sécurisation anti-hallucination d'URL)
           if (!imageObverse && !imageReverse) {
             const numistaId = extractNumistaId(cand.referenceUrl);
             if (numistaId && numistaKey) {
               const details = await fetchNumistaCoinDetails(numistaId, numistaKey);
               if (details) {
-                if (details.title) displayTitle = details.title;
-                imageObverse = details.obverseImage;
-                imageReverse = details.reverseImage;
-                if (details.weight) refWeight = details.weight;
-                if (details.diameter) refDiameter = details.diameter;
-                if (details.metal) refMetal = details.metal;
+                const cleanTitleLower = (details.title || '').toLowerCase();
+                const targetTitleLower = displayTitle.toLowerCase();
+                const commonWords = targetTitleLower.split(/\s+/).filter(w => w.length > 3 && !/argent|bronze|cuivre|billon|or/i.test(w));
+                const hasCommonWords = commonWords.some(w => cleanTitleLower.includes(w) || w.includes(cleanTitleLower));
+                
+                if (hasCommonWords) {
+                  if (details.title) displayTitle = details.title;
+                  imageObverse = details.obverseImage;
+                  imageReverse = details.reverseImage;
+                  if (details.weight) refWeight = details.weight;
+                  if (details.diameter) refDiameter = details.diameter;
+                  if (details.metal) refMetal = details.metal;
+                } else {
+                  console.log(`Rejet de l'URL doublecheck ID ${numistaId} : titre "${details.title}" ne correspond pas à "${displayTitle}"`);
+                }
               }
             }
           }
