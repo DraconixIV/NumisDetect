@@ -55,6 +55,23 @@
             </small>
           </div>
           <div class="input-group">
+            <label for="select-ai-model">Modèle de Vision IA d'Analyse</label>
+            <select id="select-ai-model" style="width: 100%; background: var(--color-bg-card); color: var(--color-text); border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 6px; font-family: inherit;">
+              <option value="pixtral">Mistral Pixtral 12B (Par défaut)</option>
+              <option value="gemini">Google Gemini 1.5 Pro (Ultra-Précis / Gratuit)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="input-gemini-key">Clé API Google Gemini (Optionnelle - Gratuite)</label>
+            <div class="input-wrapper">
+              <input type="password" id="input-gemini-key" placeholder="AIzaSy...">
+              <button class="btn-toggle-pwd"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <small class="helper-text">
+              <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Créez une clé gratuite sur Google AI Studio <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+            </small>
+          </div>
+          <div class="input-group">
             <label for="input-numista-key">Clé API Numista</label>
             <div class="input-wrapper">
               <input type="password" id="input-numista-key" placeholder="Numista-API-Key...">

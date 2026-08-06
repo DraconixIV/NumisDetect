@@ -5,6 +5,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import * as cheerio from 'cheerio';
 import db from './database.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -268,10 +269,18 @@ app.get('/api/proxy-image', async (req, res) => {
 // ----------------------------------------------------
 app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name: 'reverse', maxCount: 1 }]), async (req, res) => {
   try {
+    const selectedModel = await getSetting('selected_model') || 'pixtral';
     const mistralKey = await getSetting('mistral_key');
+    const geminiKey = await getSetting('google_key');
     
-    if (!mistralKey) {
-      return res.status(400).send("Clé API Mistral manquante. Veuillez la renseigner dans les configurations (bouton engrenage en haut à droite).");
+    if (selectedModel === 'gemini') {
+      if (!geminiKey) {
+        return res.status(400).send("Clé API Google Gemini manquante. Veuillez la renseigner dans les configurations (bouton engrenage en haut à droite).");
+      }
+    } else {
+      if (!mistralKey) {
+        return res.status(400).send("Clé API Mistral manquante. Veuillez la renseigner dans les configurations (bouton engrenage en haut à droite).");
+      }
     }
 
     const files = req.files;
@@ -408,9 +417,37 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
       }
     `;
 
-    // --- OPTION 1 : UTILISATION DE MISTRAL AI (Pixtral Large) ---
-    if (mistralKey) {
-      console.log("Utilisation de Mistral AI (Pixtral Large) pour l'analyse visuelle...");
+    let content = "";
+    
+    if (selectedModel === 'gemini' && geminiKey) {
+      console.log("Utilisation de Google Gemini (gemini-1.5-pro) pour l'analyse visuelle...");
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-pro",
+        generationConfig: { responseMimeType: "application/json" }
+      });
+      
+      const obversePart = {
+        inlineData: {
+          data: Buffer.from(fs.readFileSync(obversePath)).toString("base64"),
+          mimeType: "image/jpeg"
+        }
+      };
+      const reversePart = {
+        inlineData: {
+          data: Buffer.from(fs.readFileSync(reversePath)).toString("base64"),
+          mimeType: "image/jpeg"
+        }
+      };
+      
+      const result = await model.generateContent([
+        prompt,
+        obversePart,
+        reversePart
+      ]);
+      content = result.response.text().trim();
+    } else {
+      console.log("Utilisation de Mistral AI (Pixtral 12B) pour l'analyse visuelle...");
       const obverseBase64 = Buffer.from(fs.readFileSync(obversePath)).toString("base64");
       const reverseBase64 = Buffer.from(fs.readFileSync(reversePath)).toString("base64");
 
@@ -450,18 +487,18 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
       }
 
       const resJson = await response.json();
-      let content = resJson.choices[0].message.content.trim();
-      
-      // Nettoyage si Mistral a enveloppé le JSON dans du markdown
-      if (content.startsWith("```")) {
-        content = content.replace(/^```json/, "").replace(/```$/, "").trim();
-      }
-
-      const aiData = JSON.parse(content);
-      aiData.obverseFilename = files.obverse[0].filename;
-      aiData.reverseFilename = files.reverse[0].filename;
-      return res.json(aiData);
+      content = resJson.choices[0].message.content.trim();
     }
+
+    // Nettoyage si le modèle a enveloppé le JSON dans du markdown
+    if (content.startsWith("```")) {
+      content = content.replace(/^```json/, "").replace(/```$/, "").trim();
+    }
+
+    const aiData = JSON.parse(content);
+    aiData.obverseFilename = files.obverse[0].filename;
+    aiData.reverseFilename = files.reverse[0].filename;
+    return res.json(aiData);
   } catch (err) {
     console.error("Erreur d'analyse:", err);
     res.status(500).send("Erreur de traitement IA : " + err.message);

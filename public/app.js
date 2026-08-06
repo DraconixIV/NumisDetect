@@ -115,12 +115,18 @@ async function initSettings() {
   try {
     const mistralSetting = await apiCall('/api/settings/mistral_key');
     const numistaSetting = await apiCall('/api/settings/numista_key');
+    const geminiSetting = await apiCall('/api/settings/google_key');
+    const modelSetting = await apiCall('/api/settings/selected_model');
     
     state.settings.mistralKey = mistralSetting.value || '';
     state.settings.numistaKey = numistaSetting.value || '';
+    state.settings.geminiKey = geminiSetting.value || '';
+    state.settings.selectedModel = modelSetting.value || 'pixtral';
     
     document.getElementById('input-mistral-key').value = state.settings.mistralKey;
     document.getElementById('input-numista-key').value = state.settings.numistaKey;
+    document.getElementById('input-gemini-key').value = state.settings.geminiKey;
+    document.getElementById('select-ai-model').value = state.settings.selectedModel;
   } catch (err) {
     console.error('Erreur lors du chargement des configurations:', err);
   }
@@ -129,13 +135,19 @@ async function initSettings() {
 btnSaveSettings.addEventListener('click', async () => {
   const mistralKey = document.getElementById('input-mistral-key').value.trim();
   const numistaKey = document.getElementById('input-numista-key').value.trim();
+  const geminiKey = document.getElementById('input-gemini-key').value.trim();
+  const selectedModel = document.getElementById('select-ai-model').value;
 
   try {
     await apiCall('/api/settings', 'POST', { key: 'mistral_key', value: mistralKey });
     await apiCall('/api/settings', 'POST', { key: 'numista_key', value: numistaKey });
+    await apiCall('/api/settings', 'POST', { key: 'google_key', value: geminiKey });
+    await apiCall('/api/settings', 'POST', { key: 'selected_model', value: selectedModel });
     
     state.settings.mistralKey = mistralKey;
     state.settings.numistaKey = numistaKey;
+    state.settings.geminiKey = geminiKey;
+    state.settings.selectedModel = selectedModel;
     
     showNotification('Paramètres sauvegardés !', 'success');
     settingsPanel.classList.add('hidden');
