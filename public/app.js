@@ -520,6 +520,7 @@ function renderCandidates() {
   if (state.candidates.length > 1) {
     alternativesContainer = document.createElement('div');
     alternativesContainer.id = 'alternatives-container';
+    alternativesContainer.className = 'hidden';
     alternativesContainer.style.transition = 'all 0.3s ease';
   }
 
@@ -662,7 +663,7 @@ function renderCandidates() {
       divider.style.justifyContent = 'space-between';
       divider.style.alignItems = 'center';
       divider.style.padding = '10px 14px';
-      divider.style.background = 'rgba(255, 255, 255, 0.03)';
+      divider.style.background = 'rgba(255, 255, 255, 0.01)';
       divider.style.borderRadius = '6px';
       divider.style.border = '1px solid rgba(255, 255, 255, 0.05)';
       divider.style.marginTop = '20px';
@@ -670,7 +671,7 @@ function renderCandidates() {
 
       divider.innerHTML = `
         <span><i class="fa-solid fa-list-check"></i> Alternatives et comparatifs</span>
-        <i class="fa-solid fa-chevron-down toggle-icon" style="transition: transform 0.3s ease;"></i>
+        <i class="fa-solid fa-chevron-down toggle-icon" style="transition: transform 0.3s ease; transform: rotate(-90deg);"></i>
       `;
       candidatesList.appendChild(divider);
 
