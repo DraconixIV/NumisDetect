@@ -353,42 +353,49 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
     const prompt = `
       Tu es un expert mondial en numismatique ancienne (grecque, romaine, byzantine, médiévale, royale française, féodale, moderne).
       Voici deux photos d'une même monnaie trouvée en détection de métaux (l'une est l'avers, l'autre le revers).
-      La patine peut être abîmée ou usée. Analyse attentivement les reliefs et les restes de légendes.
+      La patine peut être abîmée, très usée, oxydée ou sombre. Analyse attentivement les moindres reliefs et lettres circulaires.
       
       ${physicalInfo}
       ${learningContext}
       
-      Effectue des recherches en ligne (notamment sur fr.numista.com et cgb.fr) pour identifier cette monnaie de manière extrêmement fiable.
-      Compare les détails visuels des photos avec les fiches de ces catalogues.
+      CONSIGNES D'ANALYSE EXPERTE ET DE TRANSCRIPTION (OCR) :
+      1. Ne cède JAMAIS à la facilité de déclarer les légendes "illisibles" ou "fragmentaires" si des caractères ou des formes géométriques sont visibles sur le pourtour.
+      2. Analyse le pourtour de chaque face de manière circulaire. Les lettres médiévales ou romaines suivent la courbure de la pièce.
+      3. Utilise tes connaissances encyclopédiques en numismatique pour décoder et extrapoler les lettres usées :
+         - Si la pièce présente une croix à l'avers et un château/bâtiment/châtel au revers, c'est le type Tournois ou similaire (féodal ou royal). Cherche la légende d'avers comme '+ PHILIPVS REX', '+ LVD OVICVS REX' ou '+ KAROLVS REX' et de revers comme '+ TVRONVS CIVIS' ou '+ MET ALO'. Si tu reconnais ne serait-ce que 2 ou 3 lettres de ces motifs, reconstitue la titulature complète correspondante.
+         - Si la pièce est romaine, cherche les formules classiques comme 'IMP...', 'CAES...', 'AVG', 'PM TR P...', 'COS...', 'PROVIDENTIA...', 'VIRTVS...', 'CONCORDIA...', etc.
+      4. Fais l'effort d'une transcription intelligente : propose la titulature la plus rationnelle selon les indices visuels et physiques.
+      
+      Effectue des recherches internes pour identifier cette monnaie de manière extrêmement fiable.
       
       Rends-moi un objet JSON contenant STRICTEMENT ces clés et aucun autre texte :
       {
-        "legendObverse": "Transcris les lettres encore visibles de la légende de l'avers. Si des lettres manquent, utilise des points de suspension, ex: 'IMP DIOCLE...AVG'",
-        "legendReverse": "Transcris les lettres encore visibles de la légende du revers. ex: 'HERCVLI DE...AT'",
-        "iconography": "Décris précisément les éléments visuels observés. (ex: 'Buste lauré de profil à droite', 'Divinité debout s'appuyant sur une massue', 'Monogramme', 'Blason de lys', etc.)",
-        "estimatedPeriod": "L'époque ou l'empire suggéré (ex: 'Bas-Empire Romain - Dioclétien', 'Médiévale - Duché d'Aquitaine', 'Royale Française - Louis XIV')",
+        "legendObverse": "Transcris les lettres décodées de l'avers. Remplis au maximum en extrapolant de manière experte (ex: 'PHILIPVS REX')",
+        "legendReverse": "Transcris les lettres décodées du revers. Remplis au maximum (ex: 'TVRONVS CIVIS')",
+        "iconography": "Description ultra-précise de l'avers (ex: 'Croix pattée au centre') et du revers (ex: 'Châtel tournois classique avec deux tours crenelées et toit pointu')",
+        "estimatedPeriod": "L'époque ou l'empire (ex: 'Royale Française - Philippe IV le Bel (1285-1314)')",
         "estimatedMetal": "Devine le métal d'origine (Bronze, Cuivre, Argent, Billon, Or) selon l'aspect et la patine",
-        "suggestedSearchTerms": ["Tableau de 3 ou 4 mots clés pour rechercher cette monnaie dans un catalogue en anglais, ex: ['Diocletian', 'Siscia', 'Hercules', 'Aureus']"],
+        "suggestedSearchTerms": ["Tableau de 3 ou 4 mots clés pertinents pour la recherche de comparaison, ex: ['Denier', 'Tournois', 'Philippe', 'IV']"],
         "directIdentification": {
-          "title": "Nom exact de la monnaie (ex: '2 Francs Semeuse (Argent)')",
-          "issuer": "Pays ou autorité émettrice (ex: 'République Française')",
-          "year": "Année ou plage d'années estimée (ex: '1898-1920')",
+          "title": "Nom exact de la monnaie (ex: 'Denier Tournois - Philippe IV le Bel')",
+          "issuer": "Autorité émettrice (ex: 'Royaume de France')",
+          "year": "Année ou plage d'années (ex: '1285-1314')",
           "metal": "Métal (Bronze, Cuivre, Argent, Billon, Or)",
-          "referenceWeight": 10.0,
-          "referenceDiameter": 27.0,
-          "referenceAxis": "6h",
-          "description": "Description succincte de l'avers et du revers",
-          "referenceUrl": "Lien URL théorique vers la fiche Numista ou CGB de cette pièce s'il existe (ex: 'https://fr.numista.com/catalogue/pieces1120.html' ou 'https://www.cgb.fr/...')"
+          "referenceWeight": 1.11,
+          "referenceDiameter": 18.0,
+          "referenceAxis": "12h",
+          "description": "Description concise avers/revers",
+          "referenceUrl": "Lien URL théorique vers la fiche Numista ou CGB de cette pièce s'il existe (ex: 'https://fr.numista.com/catalogue/pieces28581.html')"
         },
         "doubleCheckCandidates": [
           {
-            "title": "Nom de la monnaie similaire pour double-check (ex: '1 Franc Semeuse' ou une variante de millésime/atelier)",
+            "title": "Nom de la monnaie similaire pour double-check (ex: 'Double Tournois - Philippe IV le Bel')",
             "issuer": "Émetteur",
             "year": "Année ou période",
             "metal": "Métal",
-            "referenceWeight": 5.0,
-            "referenceDiameter": 25.0,
-            "referenceAxis": "6h",
+            "referenceWeight": 1.34,
+            "referenceDiameter": 20.0,
+            "referenceAxis": "12h",
             "description": "Description succincte montrant les différences ou similitudes",
             "referenceUrl": "Lien URL vers la fiche Numista ou CGB de ce spécimen de comparaison"
           }
@@ -403,7 +410,7 @@ app.post('/api/analyze', upload.fields([{ name: 'obverse', maxCount: 1 }, { name
       const reverseBase64 = Buffer.from(fs.readFileSync(reversePath)).toString("base64");
 
       const payload = {
-        model: "mistral-large-latest",
+        model: "pixtral-large-latest",
         messages: [
           {
             role: "user",
