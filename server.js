@@ -999,8 +999,8 @@ app.post('/api/identify', async (req, res) => {
         }
 
         if (uniqueCgbResults.length > 0) {
-          // Traiter jusqu'à 40 résultats CGB (pas de coût API pour les détails de CGB car synchrones)
-          const cgbCoins = uniqueCgbResults.slice(0, 40).map(item => {
+          // Traiter tous les résultats CGB (pas de coût API pour les détails de CGB car synchrones)
+          const cgbCoins = uniqueCgbResults.map(item => {
             // Extraire le poids (ex: "1,25g" ou "0.85 g")
             const weightMatch = item.title.match(/(\d+[\.,]\d+)\s*g/i);
             const refWeight = weightMatch ? parseFloat(weightMatch[1].replace(',', '.')) : null;
